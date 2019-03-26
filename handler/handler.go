@@ -119,7 +119,7 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 		log.Printf("cannot get chart outdir")
 		return errors.New("internal error: cannot get chart outdir")
 	}
-
+	log.Printf("save to outdir: %s\n", dest)
 	name, err := chartutil.Save(customChart, dest)
 	if err == nil {
 		log.Printf("Successfully packaged chart and saved it to: %s\n", name)
