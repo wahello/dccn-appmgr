@@ -100,7 +100,7 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 	req.Task.Id = uuid.New().String()
 	rsp.TaskId = req.Task.Id
 
-	path, err := filepath.Abs("../chart_repo/" + req.Task.Type.String())
+	path, err := filepath.Abs("chart_repo/" + req.Task.Type.String())
 	if err != nil {
 		log.Printf("cannot get chart folder path...\n %s \n", err.Error())
 		return errors.New("internal error: cannot get chart folder path")
