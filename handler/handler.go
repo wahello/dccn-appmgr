@@ -108,7 +108,7 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 
 	customChart, err := chartutil.LoadDir(path)
 	if err != nil {
-		log.Printf("cannot load chart from folder...\n %s \n", err.Error())
+		log.Printf("cannot load chart from folder %s ...\n %s \n", path, err.Error())
 		return errors.New("internal error: cannot load chart from folder")
 	}
 
