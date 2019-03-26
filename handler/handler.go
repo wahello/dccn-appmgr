@@ -13,8 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/helm/pkg/proto/hapi/chart"
-
 	"github.com/Ankr-network/dccn-common/protos"
 	"github.com/Ankr-network/dccn-common/protos/common"
 	"github.com/Ankr-network/dccn-common/protos/taskmgr/v1/micro"
@@ -112,7 +110,7 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 		return errors.New("internal error: cannot load chart from folder")
 	}
 
-	customChart.Values.Values["replicaCount"] = &chart.Value{Value: fmt.Sprint(req.Task.Attributes.Replica)}
+	//customChart.Values.Values["replicaCount"] = &chart.Value{Value: fmt.Sprint(req.Task.Attributes.Replica)}
 	customChart.Metadata.Version = req.Task.ChartVer
 	customChart.Metadata.Name = req.Task.ChartName
 
