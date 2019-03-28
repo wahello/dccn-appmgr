@@ -96,6 +96,7 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 
 	req.Task.Status = common_proto.TaskStatus_STARTING
 	req.Task.Id = uuid.New().String()
+	req.Task.Uid = uid
 	rsp.TaskId = req.Task.Id
 
 	path, err := filepath.Abs("chart_repo/" + req.Task.Type.String())
