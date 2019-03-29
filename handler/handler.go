@@ -99,7 +99,7 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 	req.Task.Uid = uid
 	rsp.TaskId = req.Task.Id
 
-	if req.Task.repo == "user" {
+	if req.Task.ChartRepo == "user" {
 
 		path, err := filepath.Abs("chart_repo/" + req.Task.Type.String())
 		if err != nil {
