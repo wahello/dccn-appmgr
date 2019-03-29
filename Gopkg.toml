@@ -26,7 +26,7 @@
 
 
 [[constraint]]
-  branch = "feature/SWDEV-197-taskmgr"
+  branch = "feature/swdev-184-facade-gateway"
   name = "github.com/Ankr-network/dccn-common"
 
 [[constraint]]

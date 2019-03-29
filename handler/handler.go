@@ -19,7 +19,6 @@ import (
 	db "github.com/Ankr-network/dccn-taskmgr/db_service"
 	"github.com/google/uuid"
 	"github.com/gorhill/cronexpr"
-	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/metadata"
 	"gopkg.in/mgo.v2/bson"
 	"k8s.io/helm/pkg/chartutil"
@@ -99,54 +98,58 @@ func (p *TaskMgrHandler) CreateTask(ctx context.Context, req *taskmgr.CreateTask
 	req.Task.Uid = uid
 	rsp.TaskId = req.Task.Id
 
-	path, err := filepath.Abs("chart_repo/" + req.Task.Type.String())
-	if err != nil {
-		log.Printf("cannot get chart folder path...\n %s \n", err.Error())
-		return errors.New("internal error: cannot get chart folder path")
+	if req.Task.repo == "user" {
+
+		path, err := filepath.Abs("chart_repo/" + req.Task.Type.String())
+		if err != nil {
+			log.Printf("cannot get chart folder path...\n %s \n", err.Error())
+			return errors.New("internal error: cannot get chart folder path")
+		}
+
+		customChart, err := chartutil.LoadDir(path)
+		if err != nil {
+			log.Printf("cannot load chart from folder %s ...\n %s \n", path, err.Error())
+			return errors.New("internal error: cannot load chart from folder")
+		}
+
+		//customChart.Values.Values["replicaCount"] = &chart.Value{Value: fmt.Sprint(req.Task.Attributes.Replica)}
+		customChart.Metadata.Version = req.Task.ChartVer
+		customChart.Metadata.Name = req.Task.ChartName
+
+		dest, err := os.Getwd()
+		if err != nil {
+			log.Printf("cannot get chart outdir")
+			return errors.New("internal error: cannot get chart outdir")
+		}
+		log.Printf("save to outdir: %s\n", dest)
+		name, err := chartutil.Save(customChart, dest)
+		if err == nil {
+			log.Printf("Successfully packaged chart and saved it to: %s\n", name)
+		} else {
+			log.Printf("Failed to save: %s", err)
+			return errors.New("internal error: Failed to save chart to outdir")
+		}
+
+		file, err := os.Open(name)
+		if err != nil {
+			log.Printf("cannot open chart zip file")
+			return errors.New("internal error: cannot open chart zip file")
+		}
+
+		chartReq, err := http.NewRequest("POST", "http://chart-dev.dccn.ankr.network:8080/api/user/"+uid+"/charts", file)
+		if err != nil {
+			log.Printf("cannot open chart zip file")
+			return errors.New("internal error: cannot open chart zip file")
+		}
+
+		chartRes, err := http.DefaultClient.Do(chartReq)
+
+		message, _ := ioutil.ReadAll(chartRes.Body)
+		defer chartRes.Body.Close()
+
+		log.Printf(string(message))
+
 	}
-
-	customChart, err := chartutil.LoadDir(path)
-	if err != nil {
-		log.Printf("cannot load chart from folder %s ...\n %s \n", path, err.Error())
-		return errors.New("internal error: cannot load chart from folder")
-	}
-
-	//customChart.Values.Values["replicaCount"] = &chart.Value{Value: fmt.Sprint(req.Task.Attributes.Replica)}
-	customChart.Metadata.Version = req.Task.ChartVer
-	customChart.Metadata.Name = req.Task.ChartName
-
-	dest, err := os.Getwd()
-	if err != nil {
-		log.Printf("cannot get chart outdir")
-		return errors.New("internal error: cannot get chart outdir")
-	}
-	log.Printf("save to outdir: %s\n", dest)
-	name, err := chartutil.Save(customChart, dest)
-	if err == nil {
-		log.Printf("Successfully packaged chart and saved it to: %s\n", name)
-	} else {
-		log.Printf("Failed to save: %s", err)
-		return errors.New("internal error: Failed to save chart to outdir")
-	}
-
-	file, err := os.Open(name)
-	if err != nil {
-		log.Printf("cannot open chart zip file")
-		return errors.New("internal error: cannot open chart zip file")
-	}
-
-	chartReq, err := http.NewRequest("POST", "http://chart-dev.dccn.ankr.network:8080/api/user/"+uid+"/charts", file)
-	if err != nil {
-		log.Printf("cannot open chart zip file")
-		return errors.New("internal error: cannot open chart zip file")
-	}
-
-	chartRes, err := http.DefaultClient.Do(chartReq)
-
-	message, _ := ioutil.ReadAll(chartRes.Body)
-	defer chartRes.Body.Close()
-
-	log.Printf(string(message))
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_TASK_CREATE,
