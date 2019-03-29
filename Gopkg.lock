@@ -2,8 +2,8 @@
 
 
 [[projects]]
-  branch = "feature/SWDEV-197-taskmgr"
-  digest = "1:bf05d3d4a56316c3421c3f7a7b79686efe9cfb858925a0e25cc39170f5f97c40"
+  branch = "feature/swdev-184-facade-gateway"
+  digest = "1:9bf6c7abea3caa49482ff41bf60d65e0fab889755833ae63bf038ab8dc860f9f"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -12,7 +12,7 @@
     "protos/taskmgr/v1/micro",
   ]
   pruneopts = "UT"
-  revision = "1e03bc9091f3a9c0f74e42cdf9c2f1a9111b73a4"
+  revision = "c088a81034e4185d5502aa6b2c08032ae938dc33"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
