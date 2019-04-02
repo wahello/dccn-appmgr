@@ -297,6 +297,10 @@ func (p *TaskMgrHandler) UpdateTask(ctx context.Context, req *taskmgr.UpdateTask
 		return ankr_default.ErrTaskStatusCanNotUpdate
 	}
 
+	task.ChartRepo = req.Task.ChartRepo
+	task.ChartName = req.Task.ChartName
+	task.ChartVer = req.Task.ChartVer
+
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_TASK_UPDATE,
 		OpPayload: &common_proto.DCStream_Task{Task: task},
