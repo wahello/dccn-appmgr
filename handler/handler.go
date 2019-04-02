@@ -300,6 +300,7 @@ func (p *TaskMgrHandler) UpdateTask(ctx context.Context, req *taskmgr.UpdateTask
 	task.ChartRepo = req.Task.ChartRepo
 	task.ChartName = req.Task.ChartName
 	task.ChartVer = req.Task.ChartVer
+	task.Uid = userId
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_TASK_UPDATE,
