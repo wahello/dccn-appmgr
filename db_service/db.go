@@ -16,8 +16,12 @@ type DBService interface {
 	Get(id string) (AppRecord, error)
 	// GetAll gets all app related to user id.
 	GetAll(userId string) ([]AppRecord, error)
+
+	GetAllNamespace(userId string) ([]NamespaceRecord, error)
 	// Cancel sets app status CANCEL
 	Cancel(appId string) error
+
+	CreateNamespace(namespace *common_proto.NameSpace, uid string) error
 	// Create Creates a new dc item if not exits.
 	Create(app *common_proto.App, uid string) error
 	// Update updates dc item
@@ -25,6 +29,8 @@ type DBService interface {
 	// UpdateApp updates dc item
 	UpdateApp(appId string, app *common_proto.App) error
 	// Close closes db connection
+	UpdateNamespace(taskid string,namespace *common_proto.NameSpace) error
+
 	Close()
 	// for test usage
 	dropCollection()
@@ -55,6 +61,18 @@ type AppRecord struct {
 
 }
 
+type NamespaceRecord struct {
+	NamespaceID string// short hash of uid+name+cluster_id
+	Name string
+	NamespaceUserID string 
+	Cluster_ID string //id of cluster
+	Cluster_Name string //name of cluster
+	Creation_date uint64
+	Cpu_limit float64
+	Mem_limit uint64
+	Storage_limit uint64
+	}
+
 // New returns DBService.
 func New(conf dbcommon.Config) (*DB, error) {
 	session, err := dbcommon.CreateDBConnection(conf)
@@ -83,6 +101,15 @@ func (p *DB) Get(appId string) (AppRecord, error) {
 	return app, err
 }
 
+func (p *DB) GetNamespace(NamespaceId string) (NamespaceRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()	
+
+	var namespace NamespaceRecord
+	err := p.collection(session).Find(bson.M{"namespaceid": NamespaceId}).One(&namespace)
+	return namespace, err
+}
+
 func (p *DB) GetAll(userId string) ([]AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
@@ -95,6 +122,20 @@ func (p *DB) GetAll(userId string) ([]AppRecord, error) {
 		return nil, err
 	}
 	return apps, nil
+}
+
+func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var namespaces []NamespaceRecord
+
+	log.Printf("find tasks with uid %s", userId)
+
+	if err := p.collection(session).Find(bson.M{"namespaceuserid": userId}).All(&namespaces); err != nil {
+		return nil, err
+	}
+	return namespaces, nil
 }
 
 // GetByEventId gets app by event id.
@@ -130,6 +171,23 @@ func (p *DB) Create(app *common_proto.App, uid string) error {
 	appRecord.Last_modified_date = uint64(now)
 	appRecord.Creation_date = uint64(now)
 	return p.collection(session).Insert(appRecord)
+}
+
+func (p *DB) CreateNamespace(namespace *common_proto.NameSpace, uid string) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	namespacerecord := NamespaceRecord{}
+	namespacerecord.NamespaceID = namespace.Id
+	namespacerecord.Name = namespace.Name
+	namespacerecord.NamespaceUserID = uid
+	namespacerecord.Cluster_ID = namespace.Cluster_ID
+	namespacerecord.Cluster_Name = namespace.Cluster_Name
+	namespacerecord.Creation_date = namespace.Creation_date
+	namespacerecord.Cpu_limit = namespace.Cpu_limit
+	namespacerecord.Mem_limit = namespace.Mem_limit
+	namespacerecord.Storage_limit = namespace.Storage_limit
+	return p.collection(session).Insert(namespacerecord)
 }
 
 func getAppImage(app *common_proto.App) string{
