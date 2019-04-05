@@ -1,25 +1,25 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: taskmgr
+  name: appmgr
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: taskmgr
+      app: appmgr
   template:
     metadata:
       labels:
-        app: taskmgr
+        app: appmgr
     spec:
         containers:
-        - name: app-dccn-taskmgr
-          image: 815280425737.dkr.ecr.us-west-2.amazonaws.com/dccn-hub-taskmgr:feat
+        - name: dccn-appmgr
+          image: 815280425737.dkr.ecr.us-west-2.amazonaws.com/dccn-appmgr:feat
           imagePullPolicy: Always
-          command: [ "/taskmgr" ]
+          command: [ "/appmgr" ]
           env:
           - name: DB_COLLECTION
-            value: task
+            value: app
           - name: DB_HOST
             value: datastore:27017
           - name: DB_NAME

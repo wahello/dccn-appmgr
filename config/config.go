@@ -15,7 +15,7 @@ var Default = Config{
 	DB: dbcommon.Config{
 		Host:       "127.0.0.1:27017",
 		DB:         "dccn",
-		Collection: "task",
+		Collection: "app",
 		Timeout:    5,
 		PoolLimit:  4096,
 	},

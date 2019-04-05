@@ -1,17 +1,17 @@
-# Taskmgr Service
+# Appmgr Service
 
-This is the Taskmgr service
+This is the Appmgr service
 
 Generated with
 
 ```bash
-micro new github.com/Ankr-network/refactor/app_dccn_taskmgr --namespace=go.micro --alias=taskmgr --type=srv
+micro new github.com/Ankr-network/refactor/app_dccn_appmgr --namespace=go.micro --alias=appmgr --type=srv
 ```
 
 ## Getting Started
 
-- publisher: publish the v1's task info to "topic.task.new, topic.task.cancel, topic.task.update"
-- subscriber: subscribe tasks's result from "topic.task.result"
+- publisher: publish the v1's app info to "topic.app.new, topic.app.cancel, topic.app.update"
+- subscriber: subscribe apps's result from "topic.app.result"
 - handler: request handler
 
 - [Configuration](#configuration)

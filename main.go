@@ -7,12 +7,12 @@ import (
 	micro "github.com/micro/go-micro"
 
 	ankr_default "github.com/Ankr-network/dccn-common/protos"
-	pb "github.com/Ankr-network/dccn-common/protos/taskmgr/v1/micro"
+	pb "github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro"
 
-	"github.com/Ankr-network/dccn-taskmgr/config"
-	dbservice "github.com/Ankr-network/dccn-taskmgr/db_service"
-	"github.com/Ankr-network/dccn-taskmgr/handler"
-	"github.com/Ankr-network/dccn-taskmgr/subscriber"
+	"github.com/Ankr-network/dccn-appmgr/config"
+	dbservice "github.com/Ankr-network/dccn-appmgr/db_service"
+	"github.com/Ankr-network/dccn-appmgr/handler"
+	"github.com/Ankr-network/dccn-appmgr/subscriber"
 
 	_ "github.com/micro/go-plugins/broker/rabbitmq"
 )
@@ -50,24 +50,24 @@ func startHandler(db dbservice.DBService) {
 	// var srv micro.Service
 	// New Service
 	srv = grpc.NewService(
-		micro.Name(ankr_default.TaskMgrRegistryServerName),
+		micro.Name(ankr_default.AppMgrRegistryServerName),
 	)
 
 	// Initialise srv
 	srv.Init()
 
-	// New Publisher to deploy new task action.
-	deployTask := micro.NewPublisher(ankr_default.MQDeployTask, srv.Client())
+	// New Publisher to deploy new app action.
+	deployApp := micro.NewPublisher(ankr_default.MQDeployApp, srv.Client())
 
-	// Register Function as TaskStatusFeedback to update task by data center manager's feedback.
+	// Register Function as AppStatusFeedback to update app by data center manager's feedback.
 	opt := srv.Server().Options()
 	opt.Broker.Connect()
-	if err := micro.RegisterSubscriber(ankr_default.MQFeedbackTask, srv.Server(), subscriber.New(db)); err != nil {
+	if err := micro.RegisterSubscriber(ankr_default.MQFeedbackApp, srv.Server(), subscriber.New(db)); err != nil {
 		log.Fatal(err.Error())
 	}
 
 	// Register Handler
-	if err := pb.RegisterTaskMgrHandler(srv.Server(), handler.New(db, deployTask)); err != nil {
+	if err := pb.RegisterAppMgrHandler(srv.Server(), handler.New(db, deployApp)); err != nil {
 		log.Fatal(err.Error())
 	}
 

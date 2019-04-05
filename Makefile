@@ -5,14 +5,14 @@ GOPATH:=$(shell go env GOPATH)
 all: run test deploy devtools clean
 
 build:
-	docker build . -t app_dccn_taskmgr:latest
+	docker build . -t app_dccn_appmgr:latest
 
 run: build
 	docker run -d \
 		-p 50053 \
 		$(MICRO_ENV) \
 		$(PROGRAM_ENV) \
-		app_dccn_taskmgr
+		app_dccn_appmgr
 
 local:
 	@$(MICRO_ENV) \
@@ -20,7 +20,7 @@ local:
 	go run main.go
 
 clean:
-	rm app_dccn_taskmgr
+	rm app_dccn_appmgr
 
 test:
 	go test -v ./... -cover -race
@@ -46,7 +46,7 @@ endef
 define PROGRAM_ENV
 	DB_HOST="127.0.0.1:27017" \
 	DB_NAME="dccn" \
-	DB_COLLECTION="task" \
+	DB_COLLECTION="app" \
 	DB_TIMEOUT=5 \
 	DB_POOL_LIMIT=4096
 endef

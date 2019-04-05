@@ -9,7 +9,7 @@
     "db",
     "protos",
     "protos/common",
-    "protos/taskmgr/v1/micro",
+    "protos/appmgr/v1/micro",
   ]
   pruneopts = "UT"
   revision = "c088a81034e4185d5502aa6b2c08032ae938dc33"
@@ -569,7 +569,7 @@
     "github.com/Ankr-network/dccn-common/db",
     "github.com/Ankr-network/dccn-common/protos",
     "github.com/Ankr-network/dccn-common/protos/common",
-    "github.com/Ankr-network/dccn-common/protos/taskmgr/v1/micro",
+    "github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro",
     "github.com/google/uuid",
     "github.com/gorhill/cronexpr",
     "github.com/micro/go-grpc",

@@ -15,63 +15,63 @@ func main() {
 
 	srv.Init()
 	/*
-		cl := taskmgr.NewTaskMgrService(ankr_default.TaskMgrRegistryServerName, srv.Client())
+		cl := appmgr.NewAppMgrService(ankr_default.AppMgrRegistryServerName, srv.Client())
 
 		tokenContext := metadata.NewContext(context.Background(), map[string]string{
 			"Token": token,
 		})
 
-		tasks := testCommon.MockTasks()
-		for i := range tasks {
-			if _, err := cl.CreateTask(tokenContext, &taskmgr.CreateTaskRequest{UserId: tasks[i].UserId, Task: &tasks[i]}); err != nil {
+		apps := testCommon.MockApps()
+		for i := range apps {
+			if _, err := cl.CreateApp(tokenContext, &appmgr.CreateAppRequest{UserId: apps[i].UserId, App: &apps[i]}); err != nil {
 				log.Fatal(err.Error())
 			} else {
-				log.Println("CreateTask Ok")
+				log.Println("CreateApp Ok")
 			}
 		}
 
-		userTasks := []*common_proto.Task{}
-		if rsp, err := cl.TaskList(tokenContext, &taskmgr.ID{UserId: "1"}); err != nil {
+		userApps := []*common_proto.App{}
+		if rsp, err := cl.AppList(tokenContext, &appmgr.ID{UserId: "1"}); err != nil {
 			log.Fatal(err.Error())
 		} else {
-			userTasks = append(userTasks, rsp.Tasks...)
-			log.Println("TaskList Ok")
+			userApps = append(userApps, rsp.Apps...)
+			log.Println("AppList Ok")
 		}
 
-		if len(userTasks) == 0 {
-			log.Fatalf("no tasks belongs to %d\n", 1)
+		if len(userApps) == 0 {
+			log.Fatalf("no apps belongs to %d\n", 1)
 		}
 
-		// CancelTask
-		cancelTask := userTasks[0]
-		if _, err := cl.CancelTask(tokenContext, &taskmgr.Request{UserId: cancelTask.UserId, TaskId: cancelTask.Id}); err != nil {
+		// CancelApp
+		cancelApp := userApps[0]
+		if _, err := cl.CancelApp(tokenContext, &appmgr.Request{UserId: cancelApp.UserId, AppId: cancelApp.Id}); err != nil {
 			log.Fatal(err.Error())
 		} else {
-			log.Println("CancelTask Ok")
+			log.Println("CancelApp Ok")
 		}
 
-		// Verify Canceled task
-		if _, err := cl.TaskDetail(tokenContext, &taskmgr.Request{UserId: cancelTask.UserId, TaskId: cancelTask.Id}); err != nil {
+		// Verify Canceled app
+		if _, err := cl.AppDetail(tokenContext, &appmgr.Request{UserId: cancelApp.UserId, AppId: cancelApp.Id}); err != nil {
 			log.Fatal(err.Error())
 		} else {
-			log.Println("TaskDetail Ok")
+			log.Println("AppDetail Ok")
 		}
 
-		// UpdateTask
-		cancelTask.Name = "updateTask"
-		if _, err := cl.UpdateTask(tokenContext, &taskmgr.UpdateTaskRequest{UserId: cancelTask.UserId, Task: cancelTask}); err != nil {
+		// UpdateApp
+		cancelApp.Name = "updateApp"
+		if _, err := cl.UpdateApp(tokenContext, &appmgr.UpdateAppRequest{UserId: cancelApp.UserId, App: cancelApp}); err != nil {
 			log.Fatal(err.Error())
 		} else {
-			log.Println("TaskDetail Ok")
+			log.Println("AppDetail Ok")
 		}
 
-		/* Verify updated task
-		if rsp, err := cl.TaskDetail(tokenContext, &taskmgr.Request{UserId: cancelTask.UserId, TaskId: cancelTask.Id}); err != nil {
+		/* Verify updated app
+		if rsp, err := cl.AppDetail(tokenContext, &appmgr.Request{UserId: cancelApp.UserId, AppId: cancelApp.Id}); err != nil {
 			log.Fatal(err.Error())
 		} else {
-			if !testCommon.IsEqual(rsp.Task, cancelTask) || rsp.Task.Status != common_proto.TaskStatus_UPDATING {
-				log.Fatal("UpdateTask operation does not take effect")
+			if !testCommon.IsEqual(rsp.App, cancelApp) || rsp.App.Status != common_proto.AppStatus_UPDATING {
+				log.Fatal("UpdateApp operation does not take effect")
 			}
-			log.Println("UpdateTask takes effect")
+			log.Println("UpdateApp takes effect")
 		}*/
 }

@@ -6,14 +6,14 @@ import (
 
 /*
 // send events using the publisher
-func sendEv(taskId string, p micro.Publisher) {
+func sendEv(appId string, p micro.Publisher) {
 
 	// create new event
 	ev := common_proto.Event{
 		EventType: common_proto.Operation_TASK_CANCEL,
-		OpMessage: &common_proto.Event_TaskFeedback{TaskFeedback: &common_proto.TaskFeedback{
-			TaskId: taskId,
-			Status: common_proto.TaskStatus_CANCEL_FAILED,
+		OpMessage: &common_proto.Event_AppFeedback{AppFeedback: &common_proto.AppFeedback{
+			AppId: appId,
+			Status: common_proto.AppStatus_CANCEL_FAILED,
 		}},
 	}
 
@@ -35,44 +35,44 @@ func main() {
 	service.Init()
 
 	// create publisher
-	pub := micro.NewPublisher(ankr_default.MQFeedbackTask, service.Client())
+	pub := micro.NewPublisher(ankr_default.MQFeedbackApp, service.Client())
 
-	cl := taskmgr.NewTaskMgrService(ankr_default.TaskMgrRegistryServerName, service.Client())
-	/*task := testCommon.MockTasks()[0]
-	if _, err := cl.CreateTask(context.TODO(), &taskmgr.CreateTaskRequest{UserId: task.UserId, Task: &task}); err != nil {
+	cl := appmgr.NewAppMgrService(ankr_default.AppMgrRegistryServerName, service.Client())
+	/*app := testCommon.MockApps()[0]
+	if _, err := cl.CreateApp(context.TODO(), &appmgr.CreateAppRequest{UserId: app.UserId, App: &app}); err != nil {
 		log.Fatal(err.Error())
 	} else {
-		log.Println("CreateTask Ok")
+		log.Println("CreateApp Ok")
 	}
 
-	var userTasks []*common_proto.Task
-	if rsp, err := cl.TaskList(context.TODO(), &taskmgr.ID{UserId: "1"}); err != nil {
+	var userApps []*common_proto.App
+	if rsp, err := cl.AppList(context.TODO(), &appmgr.ID{UserId: "1"}); err != nil {
 		log.Fatal(err.Error())
 	} else {
-		userTasks = append(userTasks, rsp.Tasks...)
-		log.Println("TaskList Ok")
+		userApps = append(userApps, rsp.Apps...)
+		log.Println("AppList Ok")
 	}
 
-	if len(userTasks) == 0 {
-		log.Fatalf("no tasks belongs to %d\n", 1)
+	if len(userApps) == 0 {
+		log.Fatalf("no apps belongs to %d\n", 1)
 	}
 
-	pubTask := userTasks[0]
+	pubApp := userApps[0]
 
 	// pub to topic 1
-	sendEv(pubTask.Id, pub)
+	sendEv(pubApp.Id, pub)
 
 	// waits pub message arrive to mq
 	time.Sleep(2 * time.Second)
 
 	// Verify publish event
-	if rsp, err := cl.TaskDetail(context.TODO(), &taskmgr.Request{UserId: pubTask.UserId, TaskId: pubTask.Id}); err != nil {
+	if rsp, err := cl.AppDetail(context.TODO(), &appmgr.Request{UserId: pubApp.UserId, AppId: pubApp.Id}); err != nil {
 		log.Fatal(err.Error())
 	} else {
-		if rsp.Task.Status != common_proto.TaskStatus_CANCEL_FAILED {
-			log.Fatal("UpdateTaskByFeedback do not task effect")
+		if rsp.App.Status != common_proto.AppStatus_CANCEL_FAILED {
+			log.Fatal("UpdateAppByFeedback do not app effect")
 		} else {
-			log.Println("TaskDetail Ok")
+			log.Println("AppDetail Ok")
 		}
 	}
 

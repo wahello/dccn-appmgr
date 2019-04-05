@@ -4,7 +4,7 @@ jobs:
     docker:
       # Build in Python container to install AWS CLI
       - image: circleci/golang:1.10
-    working_directory: /go/src/github.com/Ankr-network/dccn-taskmgr
+    working_directory: /go/src/github.com/Ankr-network/dccn-appmgr
     steps:
       - checkout
       - setup_remote_docker
@@ -51,8 +51,8 @@ jobs:
               K8S_CLUSTER="dev.hub"
             fi
 
-            declare -a component_arr=("dccn-hub-taskmgr")
-            declare -a dockerfile_arr=("task")
+            declare -a component_arr=("dccn-appmgr")
+            declare -a dockerfile_arr=("app")
             if [[ (${#component_arr[@]} == ${#dockerfile_arr[@]}) ]]
             then
               arrlen=${#component_arr[@]}
@@ -69,8 +69,8 @@ jobs:
                 docker push $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${component_arr[$i]}:$TAG
               done
             done
-            declare -a deployment_arr=("taskmgr")
-            declare -a name_arr=("app-dccn-taskmgr")
+            declare -a deployment_arr=("appmgr")
+            declare -a name_arr=("app-dccn-appmgr")
 
             kops export kubecfg --name ${K8S_CLUSTER}.k8s.ankr.network --state s3://kops.${K8S_CLUSTER}.config
             for ((i=0; i<arrlen; i++)); do

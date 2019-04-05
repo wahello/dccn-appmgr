@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: taskmgr
+  name: appmgr
   labels:
-    app: taskmgr
+    app: appmgr
 spec:
   selector:
-    app: taskmgr
+    app: appmgr
   ports:
   - protocol: TCP
     port: 50051

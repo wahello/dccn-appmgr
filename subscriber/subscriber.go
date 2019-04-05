@@ -5,44 +5,44 @@ import (
 	"log"
 
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
-	db "github.com/Ankr-network/dccn-taskmgr/db_service"
+	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	"gopkg.in/mgo.v2/bson"
 )
 
-type TaskStatusFeedback struct {
+type AppStatusFeedback struct {
 	db db.DBService
 }
 
-func New(db db.DBService) *TaskStatusFeedback {
-	return &TaskStatusFeedback{db}
+func New(db db.DBService) *AppStatusFeedback {
+	return &AppStatusFeedback{db}
 }
 
-// UpdateTaskByFeedback receives task result from data center, returns to v1
-// UpdateTaskStatusByFeedback updates database status by performing feedback from the data center of the task.
-// sets executor's id, updates task status.
-func (p *TaskStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Context, stream *common_proto.DCStream) error {
+// UpdateAppByFeedback receives app result from data center, returns to v1
+// UpdateAppStatusByFeedback updates database status by performing feedback from the data center of the app.
+// sets executor's id, updates app status.
+func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Context, stream *common_proto.DCStream) error {
 
-	task := stream.GetTaskReport().Task
-	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v from dc : %s ", task, task.DataCenterName)
+	app := stream.GetAppReport().App
+	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v from dc : %s ", app, app.DataCenterName)
 	var update bson.M
 	switch stream.OpType {
-	case common_proto.DCOperation_TASK_CREATE: // feedback  TaskStatus_START_FAILED  TaskStatus_START_SUCCESS => TaskStatus_RUNNING
-		status := common_proto.TaskStatus_RUNNING
-		if task.Status == common_proto.TaskStatus_START_FAILED {
-			status = common_proto.TaskStatus_START_FAILED
+	case common_proto.DCOperation_TASK_CREATE: // feedback  AppStatus_START_FAILED  AppStatus_START_SUCCESS => AppStatus_RUNNING
+		status := common_proto.AppStatus_RUNNING
+		if app.Status == common_proto.AppStatus_START_FAILED {
+			status = common_proto.AppStatus_START_FAILED
 		}
-		update = bson.M{"$set": bson.M{"status": status, "datacenter": task.DataCenterName}}
+		update = bson.M{"$set": bson.M{"status": status, "datacenter": app.DataCenterName}}
 
 	case common_proto.DCOperation_TASK_UPDATE:
-		status := common_proto.TaskStatus_RUNNING
+		status := common_proto.AppStatus_RUNNING
 		update = bson.M{"$set": bson.M{"status": status}}
 	case common_proto.DCOperation_TASK_CANCEL:
-		status := common_proto.TaskStatus_CANCELLED
-		if task.Status == common_proto.TaskStatus_CANCEL_FAILED {
-			status = common_proto.TaskStatus_CANCEL_FAILED
+		status := common_proto.AppStatus_CANCELLED
+		if app.Status == common_proto.AppStatus_CANCEL_FAILED {
+			status = common_proto.AppStatus_CANCEL_FAILED
 		}
 		update = bson.M{"$set": bson.M{"status": status}}
 	}
 
-	return p.db.Update(task.Id, update)
+	return p.db.Update(app.Id, update)
 }
