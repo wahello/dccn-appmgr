@@ -20,7 +20,7 @@ type DBService interface {
 	GetAllNamespace(userId string) ([]NamespaceRecord, error)
 	// Cancel sets app status CANCEL
 	Cancel(appId string) error
-
+	CancelNamespace(namespaceId string) error
 	CreateNamespace(namespace *common_proto.NameSpace, uid string) error
 	// Create Creates a new dc item if not exits.
 	Create(app *common_proto.App, uid string) error
@@ -63,8 +63,9 @@ type AppRecord struct {
 
 type NamespaceRecord struct {
 	NamespaceID string// short hash of uid+name+cluster_id
-	Name string
+	Name string 
 	NamespaceUserID string 
+	Status common_proto.NamespaceStatus
 	Cluster_ID string //id of cluster
 	Cluster_Name string //name of cluster
 	Creation_date uint64
@@ -182,6 +183,7 @@ func (p *DB) CreateNamespace(namespace *common_proto.NameSpace, uid string) erro
 	namespacerecord.Name = namespace.Name
 	namespacerecord.NamespaceUserID = uid
 	namespacerecord.Cluster_ID = namespace.Cluster_ID
+	namespacerecord.Status = namespace.Status
 	namespacerecord.Cluster_Name = namespace.Cluster_Name
 	namespacerecord.Creation_date = namespace.Creation_date
 	namespacerecord.Cpu_limit = namespace.Cpu_limit
@@ -261,6 +263,37 @@ func (p *DB) UpdateApp(appId string, app *common_proto.App) error {
 	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
 
+func (p *DB) UpdateNamespace(NamespaceId string, Namespace *common_proto.NameSpace) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	fields := bson.M{}
+
+	namespacerecord.Cpu_limit = namespace.Cpu_limit
+	namespacerecord.Mem_limit = namespace.Mem_limit
+	namespacerecord.Storage_limit = namespace.Storage_limit
+	namespacerecord.Status = namespace.Status
+	if len(Namespace.Name) > 0 {
+		fields["name"] = namespace.Name
+	}
+
+	if Namespace.Status > 0 {
+		fields["status"] = Namespace.Status
+	}
+	if Namespace.Cpu_limit > 0 {
+		fields["Cpu_limit"] = Namespace.Cpu_limit
+	}
+
+	if Namespace.Mem_limit > 0 {
+		fields["Mem_limit"] = namespace.Mem_limit
+	}
+	if Namespace.Storage_limit > 0 {
+		fields["Storage_limit"] = namespace.Storage_limit
+	}
+	return p.collection(session).Update(bson.M{"Namespaceid": NamespaceId}, bson.M{"$set": fields})
+	//return p.collection(session).Update(bson.M{"id": taskId}, task)
+}
+
 // Cancel cancel app, sets app status CANCEL
 func (p *DB) Cancel(appId string) error {
 	session := p.session.Copy()
@@ -268,6 +301,14 @@ func (p *DB) Cancel(appId string) error {
 
 	now := time.Now().Unix()
 	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_CANCELLED, "Last_modified_date" : now}})
+}
+
+func (p *DB) CancelNamespace(NamespaceId string) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	now := time.Now().Unix()
+	return p.collection(session).Update(bson.M{"id": NamespaceId}, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_CANCELLED, "Last_modified_date" : now}})
 }
 
 // Close closes the db connection.
