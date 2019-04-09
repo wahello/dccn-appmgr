@@ -21,7 +21,7 @@ type DBService interface {
 	// Cancel sets app status CANCEL
 	Cancel(appId string) error
 	CancelNamespace(namespaceId string) error
-	CreateNamespace(namespace *common_proto.NameSpace, uid string) error
+	CreateNamespace(namespace *common_proto.Namespace, uid string) error
 	// Create Creates a new dc item if not exits.
 	Create(app *common_proto.App, uid string) error
 	// Update updates dc item
@@ -29,7 +29,7 @@ type DBService interface {
 	// UpdateApp updates dc item
 	UpdateApp(appId string, app *common_proto.App) error
 	// Close closes db connection
-	UpdateNamespace(taskid string,namespace *common_proto.NameSpace) error
+	UpdateNamespace(taskid string,namespace *common_proto.Namespace) error
 
 	Close()
 	// for test usage
@@ -50,7 +50,7 @@ type AppRecord struct {
 	Name         string
 	Image        string
 	Datacenter   string
-	Type         common_proto.AppType
+	Type         string
 	Replica      int32
 	Datacenterid string  // mongodb name is low field
 	Status       common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
@@ -60,19 +60,6 @@ type AppRecord struct {
 	Creation_date uint64
 
 }
-
-type NamespaceRecord struct {
-	NamespaceID string// short hash of uid+name+cluster_id
-	Name string 
-	NamespaceUserID string 
-	Status common_proto.NamespaceStatus
-	Cluster_ID string //id of cluster
-	Cluster_Name string //name of cluster
-	Creation_date uint64
-	Cpu_limit float64
-	Mem_limit uint64
-	Storage_limit uint64
-	}
 
 // New returns DBService.
 func New(conf dbcommon.Config) (*DB, error) {
@@ -102,15 +89,6 @@ func (p *DB) Get(appId string) (AppRecord, error) {
 	return app, err
 }
 
-func (p *DB) GetNamespace(NamespaceId string) (NamespaceRecord, error) {
-	session := p.session.Clone()
-	defer session.Close()	
-
-	var namespace NamespaceRecord
-	err := p.collection(session).Find(bson.M{"namespaceid": NamespaceId}).One(&namespace)
-	return namespace, err
-}
-
 func (p *DB) GetAll(userId string) ([]AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
@@ -123,20 +101,6 @@ func (p *DB) GetAll(userId string) ([]AppRecord, error) {
 		return nil, err
 	}
 	return apps, nil
-}
-
-func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
-	session := p.session.Clone()
-	defer session.Close()
-
-	var namespaces []NamespaceRecord
-
-	log.Printf("find tasks with uid %s", userId)
-
-	if err := p.collection(session).Find(bson.M{"namespaceuserid": userId}).All(&namespaces); err != nil {
-		return nil, err
-	}
-	return namespaces, nil
 }
 
 // GetByEventId gets app by event id.
@@ -161,50 +125,16 @@ func (p *DB) Create(app *common_proto.App, uid string) error {
 	appRecord.Userid = uid
 	appRecord.Name = app.Name
 	appRecord.Image = getAppImage(app)
-	appRecord.Type = app.Type
 	appRecord.Status = app.Status
-	appRecord.Replica = app.Attributes.Replica
-	if app.Type == common_proto.AppType_CRONJOB {
-		appRecord.Schedule = app.GetTypeCronJob().Schedule
-	}
-
 	now := time.Now().Unix()
 	appRecord.Last_modified_date = uint64(now)
 	appRecord.Creation_date = uint64(now)
 	return p.collection(session).Insert(appRecord)
 }
 
-func (p *DB) CreateNamespace(namespace *common_proto.NameSpace, uid string) error {
-	session := p.session.Copy()
-	defer session.Close()
 
-	namespacerecord := NamespaceRecord{}
-	namespacerecord.NamespaceID = namespace.Id
-	namespacerecord.Name = namespace.Name
-	namespacerecord.NamespaceUserID = uid
-	namespacerecord.Cluster_ID = namespace.Cluster_ID
-	namespacerecord.Status = namespace.Status
-	namespacerecord.Cluster_Name = namespace.Cluster_Name
-	namespacerecord.Creation_date = namespace.Creation_date
-	namespacerecord.Cpu_limit = namespace.Cpu_limit
-	namespacerecord.Mem_limit = namespace.Mem_limit
-	namespacerecord.Storage_limit = namespace.Storage_limit
-	return p.collection(session).Insert(namespacerecord)
-}
 
 func getAppImage(app *common_proto.App) string{
-	if app.Type == common_proto.AppType_DEPLOYMENT {
-		return app.GetTypeDeployment().Image
-	}
-
-	if app.Type == common_proto.AppType_JOB {
-		return app.GetTypeJob().Image
-	}
-
-	if app.Type == common_proto.AppType_CRONJOB {
-		return app.GetTypeCronJob().Image
-	}
-
 	return ""
 }
 
@@ -263,36 +193,6 @@ func (p *DB) UpdateApp(appId string, app *common_proto.App) error {
 	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
 
-func (p *DB) UpdateNamespace(NamespaceId string, Namespace *common_proto.NameSpace) error {
-	session := p.session.Copy()
-	defer session.Close()
-
-	fields := bson.M{}
-
-	namespacerecord.Cpu_limit = namespace.Cpu_limit
-	namespacerecord.Mem_limit = namespace.Mem_limit
-	namespacerecord.Storage_limit = namespace.Storage_limit
-	namespacerecord.Status = namespace.Status
-	if len(Namespace.Name) > 0 {
-		fields["name"] = namespace.Name
-	}
-
-	if Namespace.Status > 0 {
-		fields["status"] = Namespace.Status
-	}
-	if Namespace.Cpu_limit > 0 {
-		fields["Cpu_limit"] = Namespace.Cpu_limit
-	}
-
-	if Namespace.Mem_limit > 0 {
-		fields["Mem_limit"] = namespace.Mem_limit
-	}
-	if Namespace.Storage_limit > 0 {
-		fields["Storage_limit"] = namespace.Storage_limit
-	}
-	return p.collection(session).Update(bson.M{"Namespaceid": NamespaceId}, bson.M{"$set": fields})
-	//return p.collection(session).Update(bson.M{"id": taskId}, task)
-}
 
 // Cancel cancel app, sets app status CANCEL
 func (p *DB) Cancel(appId string) error {
@@ -301,14 +201,6 @@ func (p *DB) Cancel(appId string) error {
 
 	now := time.Now().Unix()
 	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_CANCELLED, "Last_modified_date" : now}})
-}
-
-func (p *DB) CancelNamespace(NamespaceId string) error {
-	session := p.session.Copy()
-	defer session.Close()
-
-	now := time.Now().Unix()
-	return p.collection(session).Update(bson.M{"id": NamespaceId}, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_CANCELLED, "Last_modified_date" : now}})
 }
 
 // Close closes the db connection.
