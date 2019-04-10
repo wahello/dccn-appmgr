@@ -42,7 +42,7 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateN
 }
 
 type NamespaceRecord struct {
-	NamespaceID     string // short hash of uid+name+cluster_id
+	ID              string // short hash of uid+name+cluster_id
 	Name            string
 	NamespaceUserID string
 	Cluster_ID      string //id of cluster
@@ -55,7 +55,7 @@ type NamespaceRecord struct {
 
 func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Namespace {
 	message := common_proto.Namespace{}
-	message.Id = namespace.NamespaceID
+	message.Id = namespace.ID
 	message.Name = namespace.Name
 	message.ClusterId = namespace.Cluster_ID
 	message.ClusterName = namespace.Cluster_Name
@@ -104,8 +104,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 	namespace := appDeployment.Namespace
 	req.Namespace.Name = strings.ToLower(req.Namespace.Name)
 
-	if namespace.NamespaceStatus == common_proto.NamespaceStatus_NS_CANCELLED ||
-		namespace.NamespaceStatus == common_proto.NamespaceStatus_NS_DONE {
+	if namespace.NamespaceStatus == common_proto.NamespaceStatus_NS_CANCELLED {
 		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
 		return ankr_default.ErrAppStatusCanNotUpdate
 	}
@@ -147,13 +146,13 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 		log.Println(err.Error())
 		return err
 	}
-	namespace, err := p.checkOwner(userId, namespaceRecord.NamespaceUserID)
+	appDeployment, err := p.checkOwner(userId, namespaceRecord.NamespaceUserID)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
-
-	if namespace.Status == common_proto.NamespaceStatus_CANCELLED {
+	namespace := appDeployment.Namespace
+	if namespace.NamespaceStatus == common_proto.NamespaceStatus_NS_CANCELLED {
 		return ankr_default.ErrCanceledTwice
 	}
 
@@ -167,7 +166,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 		return err
 	}
 
-	if err := p.db.Update(app.Id, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_CANCELLED}}); err != nil {
+	if err := p.db.Update("namespace", namespace.Id, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELLED}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}

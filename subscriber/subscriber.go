@@ -44,5 +44,5 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		update = bson.M{"$set": bson.M{"status": status}}
 	}
 
-	return p.db.Update(appDeployment.Id, update)
+	return p.db.Update("app", appDeployment.Id, update)
 }

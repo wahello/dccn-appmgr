@@ -80,7 +80,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	appDeployment.Id = uuid.New().String()
 	appDeployment.Name = req.App.Name
 
-	switch t := req.App.NamespaceData.(type) {
+	switch req.App.NamespaceData.(type) {
 	case *common_proto.App_NamespaceId:
 		namespaceRecord, err := p.db.GetNamespace(req.App.GetNamespaceId())
 		if err != nil {
@@ -88,7 +88,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			return errors.New("internal error: get namespace failed")
 		}
 		appDeployment.Namespace = &common_proto.Namespace{
-			Id:              namespaceRecord.NamespaceID,
+			Id:              namespaceRecord.ID,
 			Name:            namespaceRecord.Name,
 			ClusterId:       namespaceRecord.Cluster_ID,
 			ClusterName:     namespaceRecord.Cluster_Name,
@@ -106,7 +106,6 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			log.Println(err.Error())
 			return err
 		}
-
 	}
 
 	appDeployment.Status = common_proto.AppStatus_APP_STARTING
@@ -126,7 +125,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 	}
 
-	if err := p.db.CreateApp(appDeployment); err != nil {
+	if err := p.db.CreateApp(appDeployment, uid); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -162,7 +161,7 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 		return err
 	}
 
-	if err := p.db.Update(app.Id, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED}}); err != nil {
+	if err := p.db.Update("app", app.Id, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -340,7 +339,7 @@ func (p *AppMgrHandler) PurgeApp(ctx context.Context, req *appmgr.AppID, rsp *co
 
 	if error == nil {
 		log.Printf(" PurgeApp  %s \n", req.AppId)
-		p.db.Update(req.AppId, bson.M{"$set": bson.M{"hidden": true}})
+		p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"hidden": true}})
 	}
 	return error
 }
@@ -543,8 +542,9 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 			Version:    v.Version,
 			AppVersion: v.AppVersion,
 		}
+		chartDetails = append(chartDetails, &chartdetail)
 	}
-	rsp.Chartdetail = chartDetails
+	rsp.Chartdetails = chartDetails
 
 	tarfileReq, err := http.NewRequest("GET", getChartURL(url, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
 	if err != nil {

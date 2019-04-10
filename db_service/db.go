@@ -23,9 +23,9 @@ type DBService interface {
 	CancelNamespace(namespaceId string) error
 	CreateNamespace(namespace *common_proto.Namespace, uid string) error
 	// Create Creates a new dc item if not exits.
-	CreateApp(appDeployment *common_proto.AppDeployment) error
-	// Update updates dc item
-	Update(appId string, update bson.M) error
+	CreateApp(appDeployment *common_proto.AppDeployment, uid string) error
+	// Update updates collection item
+	Update(collectId string, Id string, update bson.M) error
 	// UpdateApp updates dc item
 	UpdateApp(appId string, app *common_proto.AppDeployment) error
 	// Close closes db connection
@@ -69,8 +69,8 @@ func New(conf dbcommon.Config) (*DB, error) {
 	}, nil
 }
 
-func (p *DB) collection(session *mgo.Session) *mgo.Collection {
-	return session.DB(p.dbName).C(p.collectionName)
+func (p *DB) collection(session *mgo.Session, collection string) *mgo.Collection {
+	return session.DB(p.dbName).C(collection)
 }
 
 // Get gets app item by id.
@@ -79,7 +79,7 @@ func (p *DB) GetApp(appId string) (AppRecord, error) {
 	defer session.Close()
 
 	var app AppRecord
-	err := p.collection(session).Find(bson.M{"id": appId}).One(&app)
+	err := p.collection(session, "app").Find(bson.M{"id": appId}).One(&app)
 	return app, err
 }
 
@@ -91,7 +91,7 @@ func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
 
 	log.Printf("find apps with uid %s", userId)
 
-	if err := p.collection(session).Find(bson.M{"userid": userId}).All(&apps); err != nil {
+	if err := p.collection(session, "app").Find(bson.M{"userid": userId}).All(&apps); err != nil {
 		return nil, err
 	}
 	return apps, nil
@@ -103,7 +103,7 @@ func (p *DB) GetByEventId(eventId string) (*[]*common_proto.App, error) {
 	defer session.Close()
 
 	var apps []*common_proto.App
-	if err := p.collection(session).Find(bson.M{"eventid": eventId}).One(&apps); err != nil {
+	if err := p.collection(session, "app").Find(bson.M{"eventid": eventId}).One(&apps); err != nil {
 		return nil, err
 	}
 	return &apps, nil
@@ -124,15 +124,15 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	now := time.Now().Unix()
 	appRecord.Attributes.LastModifiedDate = uint64(now)
 	appRecord.Attributes.CreationDate = uint64(now)
-	return p.collection(session).Insert(appRecord)
+	return p.collection(session, "app").Insert(appRecord)
 }
 
 // Update updates app item.
-func (p *DB) Update(appId string, update bson.M) error {
+func (p *DB) Update(collection string, id string, update bson.M) error {
 	session := p.session.Copy()
 	defer session.Close()
 
-	return p.collection(session).Update(bson.M{"id": appId}, update)
+	return p.collection(session, collection).Update(bson.M{"id": id}, update)
 }
 
 func (p *DB) UpdateApp(appId string, app *common_proto.AppDeployment) error {
@@ -152,18 +152,18 @@ func (p *DB) UpdateApp(appId string, app *common_proto.AppDeployment) error {
 	now := time.Now().Unix()
 	fields["Last_modified_date"] = now
 
-	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": fields})
+	return p.collection(session, "app").Update(bson.M{"id": appId}, bson.M{"$set": fields})
 
 	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
 
 // Cancel cancel app, sets app status CANCEL
-func (p *DB) Cancel(appId string) error {
+func (p *DB) CancelApp(appId string) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	now := time.Now().Unix()
-	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED, "Last_modified_date": now}})
+	return p.collection(session, "app").Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED, "Last_modified_date": now}})
 }
 
 // Close closes the db connection.
