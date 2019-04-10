@@ -1,24 +1,26 @@
 package handler
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
-	"github.com/Ankr-network/dccn-common/protos"
-	"github.com/Ankr-network/dccn-common/protos/common"
-	"github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro"
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
+	"github.com/Ankr-network/dccn-common/protos"
+	"github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro"
+	"github.com/Ankr-network/dccn-common/protos/common"
 	"github.com/google/uuid"
-	"github.com/gorhill/cronexpr"
 	micro "github.com/micro/go-micro"
 	"github.com/micro/go-micro/metadata"
 	"gopkg.in/mgo.v2/bson"
@@ -26,14 +28,14 @@ import (
 )
 
 type AppMgrHandler struct {
-	db         db.DBService
+	db        db.DBService
 	deployApp micro.Publisher
 }
 
 func New(db db.DBService, deployApp micro.Publisher) *AppMgrHandler {
 
 	return &AppMgrHandler{
-		db:         db,
+		db:        db,
 		deployApp: deployApp,
 	}
 }
@@ -70,92 +72,51 @@ func getUserID(ctx context.Context) string {
 	return string(dat.Jti)
 }
 
-func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChartRequest, rsp *appmgr.CreateChartResponse) error {
-	uid := getUserID(ctx)
-
-	path, err := filepath.Abs("chart_repo/" + req.App.Type.String())
-	if err != nil {
-		log.Printf("cannot get chart folder path...\n %s \n", err.Error())
-		return errors.New("internal error: cannot get chart folder path")
-	}
-
-	customChart, err := chartutil.LoadDir(path)
-	if err != nil {
-		log.Printf("cannot load chart from folder %s ...\n %s \n", path, err.Error())
-		return errors.New("internal error: cannot load chart from folder")
-	}
-
-	//customChart.Values.Values["replicaCount"] = &chart.Value{Value: fmt.Sprint(req.App.Attributes.Replica)}
-	customChart.Metadata.Version = req.App.ChartVer
-	customChart.Metadata.Name = req.App.ChartName
-
-	dest, err := os.Getwd()
-	if err != nil {
-		log.Printf("cannot get chart outdir")
-		return errors.New("internal error: cannot get chart outdir")
-	}
-	log.Printf("save to outdir: %s\n", dest)
-	name, err := chartutil.Save(customChart, dest)
-	if err == nil {
-		log.Printf("Successfully packaged chart and saved it to: %s\n", name)
-	} else {
-		log.Printf("Failed to save: %s", err)
-		return errors.New("internal error: Failed to save chart to outdir")
-	}
-
-	file, err := os.Open(name)
-	if err != nil {
-		log.Printf("cannot open chart zip file")
-		return errors.New("internal error: cannot open chart zip file")
-	}
-
-	chartReq, err := http.NewRequest("POST", "http://chart-dev.dccn.ankr.network:8080/api/user/"+uid+"/charts", file)
-	if err != nil {
-		log.Printf("cannot open chart zip file")
-		return errors.New("internal error: cannot open chart zip file")
-	}
-
-	chartRes, err := http.DefaultClient.Do(chartReq)
-
-	message, _ := ioutil.ReadAll(chartRes.Body)
-	defer chartRes.Body.Close()
-
-	log.Printf(string(message))
-
-}
-
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest, rsp *appmgr.CreateAppResponse) error {
 	uid := getUserID(ctx)
 	log.Println("app manager service CreateApp")
 
-	if req.App.Attributes.Replica < 0 || req.App.Attributes.Replica >= 100 {
-		log.Println(ankr_default.ErrReplicaTooMany)
-		return ankr_default.ErrReplicaTooMany
-	}
+	appDeployment := &common_proto.AppDeployment{}
+	appDeployment.Id = uuid.New().String()
+	appDeployment.Name = req.App.Name
 
-	log.Printf("CreateApp app %+v", req)
-
-	if req.App.Attributes.Replica == 0 {
-		req.App.Attributes.Replica = 1
-	}
-
-	if req.App.Type == common_proto.AppType_CRONJOB { // check schudule filed
-		_, err := cronexpr.Parse(req.App.GetTypeCronJob().Schedule)
+	switch t := req.App.NamespaceData.(type) {
+	case *common_proto.App_NamespaceId:
+		namespaceRecord, err := p.db.GetNamespace(req.App.GetNamespaceId())
 		if err != nil {
-			log.Printf("check crobjob scheducle fomat error %s \n", err.Error())
-			return ankr_default.ErrCronJobScheduleFormat
+			log.Printf("get namespace failed, %s", err.Error())
+			return errors.New("internal error: get namespace failed")
+		}
+		appDeployment.Namespace = &common_proto.Namespace{
+			Id:              namespaceRecord.NamespaceID,
+			Name:            namespaceRecord.Name,
+			ClusterId:       namespaceRecord.Cluster_ID,
+			ClusterName:     namespaceRecord.Cluster_Name,
+			CreationDate:    namespaceRecord.Creation_date,
+			CpuLimit:        namespaceRecord.Cpu_limit,
+			MemLimit:        namespaceRecord.Mem_limit,
+			StorageLimit:    namespaceRecord.Storage_limit,
+			NamespaceStatus: namespaceRecord.Status,
+		}
+	case *common_proto.App_Namespace:
+		appDeployment.Namespace = req.App.GetNamespace()
+		appDeployment.Namespace.NamespaceStatus = common_proto.NamespaceStatus_NS_STARTING
+		appDeployment.Namespace.Id = uuid.New().String()
+		if err := p.db.CreateNamespace(appDeployment.Namespace, uid); err != nil {
+			log.Println(err.Error())
+			return err
 		}
 
 	}
 
-	req.App.Status = common_proto.AppStatus_STARTING
-	req.App.Id = uuid.New().String()
-	req.App.Uid = uid
-	rsp.AppId = req.App.Id
+	appDeployment.Status = common_proto.AppStatus_APP_STARTING
+	appDeployment.ChartDetail = req.App.ChartDetail
+	appDeployment.Uid = uid
+	rsp.AppId = appDeployment.Id
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_TASK_CREATE,
-		OpPayload: &common_proto.DCStream_App{App: req.App},
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -165,7 +126,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 	}
 
-	if err := p.db.Create(req.App, uid); err != nil {
+	if err := p.db.CreateApp(appDeployment); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -175,25 +136,25 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 // Must return nil for gRPC handler
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *common_proto.Empty) error {
-	userId := getUserID(ctx)
+	userID := getUserID(ctx)
 	log.Println("Debug into CancelApp")
-	if err := checkId(userId, req.AppId); err != nil {
+	if err := checkId(userID, req.AppId); err != nil {
 		log.Println(err.Error())
 		return err
 	}
-	app, err := p.checkOwner(userId, req.AppId)
+	app, err := p.checkOwner(userID, req.AppId)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	if app.Status == common_proto.AppStatus_CANCELLED {
+	if app.Status == common_proto.AppStatus_APP_CANCELLED {
 		return ankr_default.ErrCanceledTwice
 	}
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_TASK_CANCEL,
-		OpPayload: &common_proto.DCStream_App{App: app},
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: app},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -201,7 +162,7 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 		return err
 	}
 
-	if err := p.db.Update(app.Id, bson.M{"$set": bson.M{"status": common_proto.AppStatus_CANCELLED}}); err != nil {
+	if err := p.db.Update(app.Id, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -209,34 +170,15 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 	return nil
 }
 
-func convertToAppMessage(app db.AppRecord) common_proto.App {
-	message := common_proto.App{}
+func convertToAppMessage(app db.AppRecord) common_proto.AppDeployment {
+	message := common_proto.AppDeployment{}
 	message.Id = app.ID
 	message.Name = app.Name
-	message.Type = app.Type
+	message.Namespace = &app.Namespace
 	message.Status = app.Status
-	message.DataCenterName = app.Datacenter
-	message.Attributes = &common_proto.AppAttributes{}
-	message.Attributes.Replica = app.Replica
-	message.Attributes.LastModifiedDate = app.Last_modified_date
-	message.Attributes.CreationDate = app.Creation_date
-
-	//deployMessage := common_proto.AppTypeDeployment{Image : app.Image}
-	if app.Type == common_proto.AppType_DEPLOYMENT {
-		t := common_proto.App_TypeDeployment{TypeDeployment: &common_proto.AppTypeDeployment{Image: app.Image}}
-		message.TypeData = &t
-	}
-
-	if app.Type == common_proto.AppType_JOB {
-		t := common_proto.App_TypeJob{TypeJob: &common_proto.AppTypeJob{Image: app.Image}}
-		message.TypeData = &t
-	}
-
-	if app.Type == common_proto.AppType_CRONJOB {
-		t := common_proto.App_TypeCronJob{TypeCronJob: &common_proto.AppTypeCronJob{Image: app.Image, Schedule: app.Schedule}}
-		message.TypeData = &t
-	}
-
+	message.Attributes = &app.Attributes
+	message.Uid = app.Userid
+	message.ChartDetail = &app.ChartDetail
 	return message
 
 }
@@ -245,14 +187,14 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 	userId := getUserID(ctx)
 	log.Println("app service into AppList")
 
-	apps, err := p.db.GetAll(userId)
+	apps, err := p.db.GetAllApp(userId)
 	log.Printf(">>>>>>appMessage  %+v \n", apps)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	appsWithoutHidden := make([]*common_proto.App, 0)
+	appsWithoutHidden := make([]*common_proto.AppDeployment, 0)
 
 	for i := 0; i < len(apps); i++ {
 		if apps[i].Hidden != true {
@@ -262,7 +204,7 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 		}
 	}
 
-	rsp.Apps = appsWithoutHidden
+	rsp.AppDeployments = appsWithoutHidden
 
 	return nil
 }
@@ -270,42 +212,31 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
 	userId := getUserID(ctx)
 
-	if err := checkId(userId, req.App.Id); err != nil {
+	if err := checkId(userId, req.AppDeployment.Id); err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	app, err := p.checkOwner(userId, req.App.Id)
+	appDeployment, err := p.checkOwner(userId, req.AppDeployment.Id)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	req.App.Name = strings.ToLower(req.App.Name)
+	req.AppDeployment.Name = strings.ToLower(req.AppDeployment.Name)
 
-	if req.App.Attributes.Replica == 0 {
-		req.App.Attributes.Replica = app.Attributes.Replica
-	}
-
-	if req.App.Attributes.Replica < 0 || req.App.Attributes.Replica >= 100 {
-		log.Println(ankr_default.ErrReplicaTooMany.Error())
-		return ankr_default.ErrReplicaTooMany
-	}
-
-	if app.Status == common_proto.AppStatus_CANCELLED ||
-		app.Status == common_proto.AppStatus_DONE {
+	if appDeployment.Status == common_proto.AppStatus_APP_CANCELLED ||
+		appDeployment.Status == common_proto.AppStatus_APP_DONE {
 		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
 		return ankr_default.ErrAppStatusCanNotUpdate
 	}
 
-	app.ChartRepo = req.App.ChartRepo
-	app.ChartName = req.App.ChartName
-	app.ChartVer = req.App.ChartVer
-	app.Uid = userId
+	appDeployment.ChartDetail = req.AppDeployment.ChartDetail
+	appDeployment.Uid = userId
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_TASK_UPDATE,
-		OpPayload: &common_proto.DCStream_App{App: app},
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -313,8 +244,8 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 		return err
 	}
 	// TODO: wait deamon notify
-	req.App.Status = common_proto.AppStatus_UPDATING
-	if err := p.db.UpdateApp(req.App.Id, req.App); err != nil {
+	req.AppDeployment.Status = common_proto.AppStatus_APP_UPDATING
+	if err := p.db.UpdateApp(req.AppDeployment.Id, req.AppDeployment); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -325,12 +256,12 @@ func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty
 	log.Printf("AppOverview in app manager service\n")
 	//rsp = &appmgr.AppOverviewResponse{}
 	userId := getUserID(ctx)
-	apps, err := p.db.GetAll(userId)
+	apps, err := p.db.GetAllApp(userId)
 	failed := 0
 
 	for i := 0; i < len(apps); i++ {
 		t := apps[i]
-		if t.Status == common_proto.AppStatus_START_FAILED || t.Status == common_proto.AppStatus_CANCEL_FAILED || t.Status == common_proto.AppStatus_UPDATE_FAILED {
+		if t.Status == common_proto.AppStatus_APP_START_FAILED || t.Status == common_proto.AppStatus_APP_CANCEL_FAILED || t.Status == common_proto.AppStatus_APP_UPDATE_FAILED {
 			failed++
 		}
 	}
@@ -379,7 +310,7 @@ func (p *AppMgrHandler) AppLeaderBoard(ctx context.Context, req *common_proto.Em
 	}
 
 	userId := getUserID(ctx)
-	apps, err := p.db.GetAll(userId)
+	apps, err := p.db.GetAllApp(userId)
 	if err == nil && len(apps) > 0 {
 		offset := len(apps)
 
@@ -414,20 +345,20 @@ func (p *AppMgrHandler) PurgeApp(ctx context.Context, req *appmgr.AppID, rsp *co
 	return error
 }
 
-func (p *AppMgrHandler) checkOwner(userId, appId string) (*common_proto.App, error) {
-	app, err := p.db.Get(appId)
+func (p *AppMgrHandler) checkOwner(userId, appId string) (*common_proto.AppDeployment, error) {
+	appDeployment, err := p.db.GetApp(appId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("appid : %s user id -%s-   user_token_id -%s-  ", appId, app.Userid, userId)
+	log.Printf("appid : %s user id -%s-   user_token_id -%s-  ", appId, appDeployment.Userid, userId)
 
-	if app.Userid != userId {
+	if appDeployment.Userid != userId {
 		return nil, ankr_default.ErrUserNotOwn
 	}
 
-	appMessage := convertToAppMessage(app)
+	appMessage := convertToAppMessage(appDeployment)
 
 	return &appMessage, nil
 }
@@ -442,4 +373,270 @@ func checkId(userId, appId string) error {
 	}
 
 	return nil
+}
+
+// Chart is a struct representing a chartmuseum chart in the manifest
+type Chart struct {
+	Name        string       `json:"name"`
+	Home        string       `json:"home"`
+	Version     string       `json:"version"`
+	Description string       `json:"description"`
+	Keywords    []string     `json:"keywords"`
+	Maintainers []Maintainer `json:"maintainers"`
+	Icon        string       `json:"icon"`
+	AppVersion  string       `json:"appVersion"`
+	URLS        []string     `json:"urls"`
+	Created     string       `json:"created"`
+	Digest      string       `json:"digest"`
+}
+
+// Maintainer is a struct representing a maintainer inside a chart
+type Maintainer struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+var url string
+
+// CreateChart will upload chart file to the chartmuseum
+func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChartRequest, rsp *common_proto.Empty) error {
+
+	log.Println("Uploading charts...")
+
+	uid := getUserID(ctx)
+
+	url = "http://chart-dev.dccn.ankr.network:8080"
+	query, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
+	if query.StatusCode == 200 {
+		log.Printf("chart already exist, create failed.\n")
+		return errors.New("chart already exist, create failed")
+	}
+
+	Chart, err := chartutil.LoadArchive(bytes.NewReader(req.ChartFile))
+	if err != nil {
+		log.Printf("cannot load chart from tar file, %s \n", req.ChartName, err.Error())
+		return errors.New("internal error: cannot load chart from tar file")
+	}
+
+	Chart.Metadata.Version = req.ChartVer
+	Chart.Metadata.Name = req.ChartName
+
+	dest, err := os.Getwd()
+	if err != nil {
+		log.Printf("cannot get chart outdir")
+		return errors.New("internal error: cannot get chart outdir")
+	}
+	log.Printf("save to outdir: %s\n", dest)
+	name, err := chartutil.Save(Chart, dest)
+	if err == nil {
+		log.Printf("Successfully packaged chart and saved it to: %s\n", name)
+	} else {
+		log.Printf("Failed to save: %s", err)
+		return errors.New("internal error: Failed to save chart to outdir")
+	}
+
+	file, err := os.Open(name)
+	if err != nil {
+		log.Printf("cannot open chart tar file")
+		return errors.New("internal error: cannot open chart tar file")
+	}
+
+	chartReq, err := http.NewRequest("POST", getChartURL(url, uid, req.ChartRepo), file)
+	if err != nil {
+		log.Printf("cannot open chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot open chart tar file")
+	}
+
+	chartRes, err := http.DefaultClient.Do(chartReq)
+	if err != nil {
+		log.Printf("cannot upload chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot upload chart tar file")
+	}
+	message, _ := ioutil.ReadAll(chartRes.Body)
+	defer chartRes.Body.Close()
+
+	log.Printf(string(message))
+
+	return nil
+}
+
+// ChartList will return a list of charts from the specific chartmuseum repo
+func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequest, rsp *appmgr.ChartListResponse) error {
+
+	log.Println("Checking for charts...")
+
+	uid := getUserID(ctx)
+
+	url = "http://chart-dev.dccn.ankr.network:8080"
+	chartRes, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo))
+	if err != nil {
+		log.Printf("cannot get chart list, %s \n", err.Error())
+		return errors.New("internal error: cannot get chart list")
+	}
+
+	defer chartRes.Body.Close()
+
+	message, err := ioutil.ReadAll(chartRes.Body)
+	if err != nil {
+		log.Printf("cannot get chart list response body, %s \n", err.Error())
+		return errors.New("internal error: cannot get chart list response body")
+	}
+
+	data := map[string][]Chart{}
+	if err := json.Unmarshal([]byte(message), &data); err != nil {
+		log.Printf("cannot unmarshal chart list, %s \n", err.Error())
+		return errors.New("internal error: cannot unmarshal chart list")
+	}
+
+	charts := make([]*common_proto.Chart, 0)
+
+	for _, v := range data {
+		chart := common_proto.Chart{
+			Name:             v[0].Name,
+			Repo:             req.ChartRepo,
+			Description:      v[0].Description,
+			IconUrl:          v[0].Icon,
+			LatestVersion:    v[0].Version,
+			LatestAppVersion: v[0].AppVersion,
+		}
+		charts = append(charts, &chart)
+	}
+
+	rsp.Charts = charts
+
+	return nil
+}
+
+// ChartDetail will return a list of specific chart versions from the specific chartmuseum repo
+func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetailRequest, rsp *appmgr.ChartDetailResponse) error {
+
+	log.Println("Checking for chart details...")
+
+	uid := getUserID(ctx)
+
+	url = "http://chart-dev.dccn.ankr.network:8080"
+	chartRes, err := http.Get(getChartURL(url+"/api", uid, req.Chart.Repo) + "/" + req.Chart.Name)
+	if err != nil {
+		log.Printf("cannot get chart details, %s \n", err.Error())
+		return errors.New("internal error: cannot get chart details")
+	}
+
+	defer chartRes.Body.Close()
+
+	message, err := ioutil.ReadAll(chartRes.Body)
+	if err != nil {
+		log.Printf("cannot get chart details response body, %s \n", err.Error())
+		return errors.New("internal error: cannot get chart details response body")
+	}
+
+	data := []Chart{}
+	if err := json.Unmarshal([]byte(message), &data); err != nil {
+		log.Printf("cannot unmarshal chart details, %s \n", err.Error())
+		return errors.New("internal error: cannot unmarshal chart details")
+	}
+
+	chartDetails := make([]*common_proto.ChartDetail, 0)
+	for _, v := range data {
+		chartdetail := common_proto.ChartDetail{
+			Name:       v.Name,
+			Repo:       req.Chart.Repo,
+			Version:    v.Version,
+			AppVersion: v.AppVersion,
+		}
+	}
+	rsp.Chartdetail = chartDetails
+
+	tarfileReq, err := http.NewRequest("GET", getChartURL(url, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
+	if err != nil {
+		log.Printf("cannot create show version tarball request, %s \n", err.Error())
+		return errors.New("internal error: create show version tarball request")
+	}
+
+	tarfileRes, err := http.DefaultClient.Do(tarfileReq)
+	if err != nil {
+		log.Printf("cannot download chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot download chart tar file")
+	}
+	defer tarfileRes.Body.Close()
+
+	gzf, err := gzip.NewReader(tarfileRes.Body)
+	if err != nil {
+		log.Printf("cannot open chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot open chart tar file")
+	}
+	defer gzf.Close()
+
+	tarf := tar.NewReader(gzf)
+
+	rsp.ShowReadme, err = extractFromTarfile(req.Chart.Name+"/README.md", tarf)
+	if err != nil {
+		log.Printf("cannot find readme in chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot find readme in chart tar file")
+	}
+
+	rsp.ShowValues, err = extractFromTarfile(req.Chart.Name+"/values.yaml", tarf)
+	if err != nil {
+		log.Printf("cannot find value in chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot find value in chart tar file")
+	}
+
+	return nil
+}
+
+func (p *AppMgrHandler) DeleteChart(ctx context.Context, req *appmgr.DeleteChartRequest, res *common_proto.Empty) error {
+	log.Println("Deleting charts...")
+
+	uid := getUserID(ctx)
+	url = "http://chart-dev.dccn.ankr.network:8080"
+	query, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
+	if query.StatusCode != 200 {
+		log.Printf("chart not exist, delete failed.\n")
+		return errors.New("chart not exist, delete failed")
+	}
+
+	delReq, err := http.NewRequest("DELETE", getChartURL(url+"/api", uid, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
+	if err != nil {
+		log.Printf("cannot create delete chart request, %s \n", err.Error())
+		return errors.New("internal error: cannot create delete chart request")
+	}
+
+	delRes, err := http.DefaultClient.Do(delReq)
+	if err != nil {
+		log.Printf("cannot delete chart file, %s \n", err.Error())
+		return errors.New("internal error: cannot delete chart file")
+	}
+	defer delRes.Body.Close()
+
+	return nil
+}
+
+func getChartURL(url string, uid string, repo string) string {
+
+	if repo == "user" {
+		url += "/user/" + uid + "/charts"
+	} else {
+		url += "/public/" + repo + "/charts"
+	}
+	return url
+}
+
+func extractFromTarfile(filename string, tarf *tar.Reader) (string, error) {
+	var file string
+	for {
+		header, err := tarf.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return file, err
+		}
+
+		if header.Name == filename {
+			var b bytes.Buffer
+			io.Copy(&b, tarf)
+			file = string(b.Bytes())
+			break
+		}
+	}
+	return file, nil
 }

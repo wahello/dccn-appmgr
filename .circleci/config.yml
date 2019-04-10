@@ -70,7 +70,7 @@ jobs:
               done
             done
             declare -a deployment_arr=("appmgr")
-            declare -a name_arr=("app-dccn-appmgr")
+            declare -a name_arr=("dccn-appmgr")
 
             kops export kubecfg --name ${K8S_CLUSTER}.k8s.ankr.network --state s3://kops.${K8S_CLUSTER}.config
             for ((i=0; i<arrlen; i++)); do

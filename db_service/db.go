@@ -12,24 +12,24 @@ import (
 )
 
 type DBService interface {
-	// Get gets a app item by appmgr's id.
-	Get(id string) (AppRecord, error)
+	// GetApp gets a app item by appmgr's id.
+	GetApp(id string) (AppRecord, error)
 	// GetAll gets all app related to user id.
-	GetAll(userId string) ([]AppRecord, error)
-
+	GetAllApp(userId string) ([]AppRecord, error)
+	GetNamespace(namespaceId string) (NamespaceRecord, error)
 	GetAllNamespace(userId string) ([]NamespaceRecord, error)
-	// Cancel sets app status CANCEL
-	Cancel(appId string) error
+	// CancelApp sets app status CANCEL
+	CancelApp(appId string) error
 	CancelNamespace(namespaceId string) error
 	CreateNamespace(namespace *common_proto.Namespace, uid string) error
 	// Create Creates a new dc item if not exits.
-	Create(app *common_proto.App, uid string) error
+	CreateApp(appDeployment *common_proto.AppDeployment) error
 	// Update updates dc item
 	Update(appId string, update bson.M) error
 	// UpdateApp updates dc item
-	UpdateApp(appId string, app *common_proto.App) error
+	UpdateApp(appId string, app *common_proto.AppDeployment) error
 	// Close closes db connection
-	UpdateNamespace(taskid string,namespace *common_proto.Namespace) error
+	UpdateNamespace(namespaceId string, namespace *common_proto.Namespace) error
 
 	Close()
 	// for test usage
@@ -45,20 +45,14 @@ type DB struct {
 }
 
 type AppRecord struct {
-	ID           string
-	Userid       string
-	Name         string
-	Image        string
-	Datacenter   string
-	Type         string
-	Replica      int32
-	Datacenterid string  // mongodb name is low field
-	Status       common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
-	Hidden       bool
-	Schedule     string
-	Last_modified_date uint64
-	Creation_date uint64
-
+	ID          string
+	Userid      string
+	Name        string
+	Namespace   common_proto.Namespace // mongodb name is low field
+	Status      common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
+	Hidden      bool
+	Attributes  common_proto.AppAttributes
+	ChartDetail common_proto.ChartDetail
 }
 
 // New returns DBService.
@@ -80,7 +74,7 @@ func (p *DB) collection(session *mgo.Session) *mgo.Collection {
 }
 
 // Get gets app item by id.
-func (p *DB) Get(appId string) (AppRecord, error) {
+func (p *DB) GetApp(appId string) (AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
 
@@ -89,7 +83,7 @@ func (p *DB) Get(appId string) (AppRecord, error) {
 	return app, err
 }
 
-func (p *DB) GetAll(userId string) ([]AppRecord, error) {
+func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
 
@@ -115,29 +109,23 @@ func (p *DB) GetByEventId(eventId string) (*[]*common_proto.App, error) {
 	return &apps, nil
 }
 
-// Create creates a new app item if it not exists
-func (p *DB) Create(app *common_proto.App, uid string) error {
+// CreateApp creates a new app deployment item if it not exists
+func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	appRecord := AppRecord{}
-	appRecord.ID = app.Id
+	appRecord.ID = appDeployment.Id
 	appRecord.Userid = uid
-	appRecord.Name = app.Name
-	appRecord.Image = getAppImage(app)
-	appRecord.Status = app.Status
+	appRecord.Name = appDeployment.Name
+	appRecord.Status = appDeployment.Status
+	appRecord.Namespace = *appDeployment.Namespace
+	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
-	appRecord.Last_modified_date = uint64(now)
-	appRecord.Creation_date = uint64(now)
+	appRecord.Attributes.LastModifiedDate = uint64(now)
+	appRecord.Attributes.CreationDate = uint64(now)
 	return p.collection(session).Insert(appRecord)
 }
-
-
-
-func getAppImage(app *common_proto.App) string{
-	return ""
-}
-
 
 // Update updates app item.
 func (p *DB) Update(appId string, update bson.M) error {
@@ -147,7 +135,7 @@ func (p *DB) Update(appId string, update bson.M) error {
 	return p.collection(session).Update(bson.M{"id": appId}, update)
 }
 
-func (p *DB) UpdateApp(appId string, app *common_proto.App) error {
+func (p *DB) UpdateApp(appId string, app *common_proto.AppDeployment) error {
 	session := p.session.Copy()
 	defer session.Close()
 
@@ -157,42 +145,17 @@ func (p *DB) UpdateApp(appId string, app *common_proto.App) error {
 		fields["name"] = app.Name
 	}
 
-	if app.Attributes.Replica > 0 {
-		fields["replica"] = app.Attributes.Replica
-	}
-
 	if app.Status > 0 {
 		fields["status"] = app.Status
-	}
-
-	if app.Attributes.Hidden {
-		fields["hidden"] = app.Attributes.Hidden
-	}
-
-	if app.Type == common_proto.AppType_CRONJOB {
-		fields["schedule"] = app.GetTypeCronJob().Schedule
-	}
-
-	image := getAppImage(app)
-
-	if len(image) > 0 {
-		fields["image"] = image
-	}
-
-	if len(app.DataCenterName) > 0 {
-		fields["datacenter"] = app.DataCenterName
 	}
 
 	now := time.Now().Unix()
 	fields["Last_modified_date"] = now
 
-
 	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": fields})
-
 
 	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
-
 
 // Cancel cancel app, sets app status CANCEL
 func (p *DB) Cancel(appId string) error {
@@ -200,7 +163,7 @@ func (p *DB) Cancel(appId string) error {
 	defer session.Close()
 
 	now := time.Now().Unix()
-	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_CANCELLED, "Last_modified_date" : now}})
+	return p.collection(session).Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED, "Last_modified_date": now}})
 }
 
 // Close closes the db connection.
