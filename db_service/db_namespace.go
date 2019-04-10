@@ -39,7 +39,7 @@ func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
 
 	var namespaces []NamespaceRecord
 
-	log.Printf("find tasks with uid %s", userId)
+	log.Printf("find apps with uid %s", userId)
 
 	if err := p.collection(session).Find(bson.M{"namespaceuserid": userId}).All(&namespaces); err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (p *DB) UpdateNamespace(NamespaceId string, Namespace *common_proto.Namespa
 		fields["Storage_limit"] = Namespace.StorageLimit
 	}
 	return p.collection(session).Update(bson.M{"Namespaceid": NamespaceId}, bson.M{"$set": fields})
-	//return p.collection(session).Update(bson.M{"id": taskId}, task)
+
 }
 
 func (p *DB) CancelNamespace(NamespaceId string) error {

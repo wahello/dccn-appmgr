@@ -158,7 +158,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 	}
 
 	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_TASK_CANCEL,
+		OpType:    common_proto.DCOperation_APP_CANCEL,
 		OpPayload: &common_proto.DCStream_Namespace{Namespace: namespace},
 	}
 

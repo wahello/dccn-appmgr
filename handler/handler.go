@@ -115,7 +115,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	rsp.AppId = appDeployment.Id
 
 	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_TASK_CREATE,
+		OpType:    common_proto.DCOperation_APP_CREATE,
 		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
 	}
 
@@ -153,7 +153,7 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 	}
 
 	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_TASK_CANCEL,
+		OpType:    common_proto.DCOperation_APP_CANCEL,
 		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: app},
 	}
 
@@ -235,7 +235,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 	appDeployment.Uid = userId
 
 	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_TASK_UPDATE,
+		OpType:    common_proto.DCOperation_APP_UPDATE,
 		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
 	}
 

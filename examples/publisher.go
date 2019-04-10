@@ -10,7 +10,7 @@ func sendEv(appId string, p micro.Publisher) {
 
 	// create new event
 	ev := common_proto.Event{
-		EventType: common_proto.Operation_TASK_CANCEL,
+		EventType: common_proto.Operation_APP_CANCEL,
 		OpMessage: &common_proto.Event_AppFeedback{AppFeedback: &common_proto.AppFeedback{
 			AppId: appId,
 			Status: common_proto.AppStatus_CANCEL_FAILED,

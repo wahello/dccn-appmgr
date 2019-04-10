@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -22,27 +22,27 @@ func New(db db.DBService) *AppStatusFeedback {
 // sets executor's id, updates app status.
 func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Context, stream *common_proto.DCStream) error {
 
-	app := stream.GetAppReport().App
-	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v from dc : %s ", app, app.DataCenterName)
+	appDeployment := stream.GetAppReport().AppDeployment
+	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v from dc : %s ", appDeployment, appDeployment.Namespace.ClusterName)
 	var update bson.M
 	switch stream.OpType {
-	case common_proto.DCOperation_TASK_CREATE: // feedback  AppStatus_START_FAILED  AppStatus_START_SUCCESS => AppStatus_RUNNING
-		status := common_proto.AppStatus_RUNNING
-		if app.Status == common_proto.AppStatus_START_FAILED {
-			status = common_proto.AppStatus_START_FAILED
+	case common_proto.DCOperation_APP_CREATE: // feedback  AppStatus_START_FAILED  AppStatus_START_SUCCESS => AppStatus_RUNNING
+		status := common_proto.AppStatus_APP_RUNNING
+		if appDeployment.Status == common_proto.AppStatus_APP_START_FAILED {
+			status = common_proto.AppStatus_APP_START_FAILED
 		}
-		update = bson.M{"$set": bson.M{"status": status, "datacenter": app.DataCenterName}}
+		update = bson.M{"$set": bson.M{"status": status, "namespace": appDeployment.Namespace}}
 
-	case common_proto.DCOperation_TASK_UPDATE:
-		status := common_proto.AppStatus_RUNNING
+	case common_proto.DCOperation_APP_UPDATE:
+		status := common_proto.AppStatus_APP_RUNNING
 		update = bson.M{"$set": bson.M{"status": status}}
-	case common_proto.DCOperation_TASK_CANCEL:
-		status := common_proto.AppStatus_CANCELLED
-		if app.Status == common_proto.AppStatus_CANCEL_FAILED {
-			status = common_proto.AppStatus_CANCEL_FAILED
+	case common_proto.DCOperation_APP_CANCEL:
+		status := common_proto.AppStatus_APP_CANCELLED
+		if appDeployment.Status == common_proto.AppStatus_APP_CANCEL_FAILED {
+			status = common_proto.AppStatus_APP_CANCEL_FAILED
 		}
 		update = bson.M{"$set": bson.M{"status": status}}
 	}
 
-	return p.db.Update(app.Id, update)
+	return p.db.Update(appDeployment.Id, update)
 }
