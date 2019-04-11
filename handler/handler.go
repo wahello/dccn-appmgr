@@ -74,7 +74,7 @@ func getUserID(ctx context.Context) string {
 
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest, rsp *appmgr.CreateAppResponse) error {
 
-	uid := getUserID(ctx)
+	userID := getUserID(ctx)
 	log.Println("app manager service CreateApp")
 
 	appDeployment := &common_proto.AppDeployment{}
@@ -105,7 +105,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		appDeployment.Namespace = req.App.GetNamespace()
 		appDeployment.Namespace.Status = common_proto.NamespaceStatus_NS_STARTING
 		appDeployment.Namespace.Id = uuid.New().String()
-		if err := p.db.CreateNamespace(appDeployment.Namespace, uid); err != nil {
+		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
 			log.Println(err.Error())
 			return err
 		}
@@ -114,7 +114,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 	appDeployment.Status = common_proto.AppStatus_APP_STARTING
 	appDeployment.ChartDetail = req.App.ChartDetail
-	appDeployment.Uid = uid
+	appDeployment.Uid = userID
 	rsp.AppId = appDeployment.Id
 
 	event := common_proto.DCStream{
@@ -129,7 +129,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 	}
 
-	if err := p.db.CreateApp(appDeployment, uid); err != nil {
+	if err := p.db.CreateApp(appDeployment, userID); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -165,7 +165,7 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 		return err
 	}
 
-	if err := p.db.Update("app", app.Id, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED}}); err != nil {
+	if err := p.db.Update("app", app.Id, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLING}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}
