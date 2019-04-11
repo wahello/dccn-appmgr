@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "feature/swdev-184-facade-gateway"
-  digest = "1:f3c4600187b45222e84c5e9b7c975b36b240f370e49875ac8edbb02e2caddcc3"
+  digest = "1:bdc2284fb9a0c855616cc2c8050612064eefad8523fa9b635a40c76d22b0eae8"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -12,7 +12,7 @@
     "protos/common",
   ]
   pruneopts = "UT"
-  revision = "6337e1b934f6014d236d9b8f26cdd327e0e712e2"
+  revision = "4ace57d47e56b314cacf108fb95b0efae3df6b54"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -200,8 +200,8 @@
   name = "github.com/hashicorp/serf"
   packages = ["coordinate"]
   pruneopts = "UT"
-  revision = "b89a09ebd4b1b570e0076d5097272e67c10ac4f6"
-  version = "v0.8.2"
+  revision = "15cfd05de3dffb3664aa37b06e91f970b825e380"
+  version = "v0.8.3"
 
 [[projects]]
   digest = "1:f5a2051c55d05548d2d4fd23d244027b59fbd943217df8aa3b5e170ac2fd6e1b"
@@ -437,11 +437,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cf353a5a9ffb2d6f850e9c773e25388a425a70c270546480427ed069e87b136a"
+  digest = "1:e2e51bf73862610e548f3acd292f447b500e53d792aa55260a8cb605dfd8ba09"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "4b34438f7a67ee5f45cc6132e2bad873a20324e9"
+  revision = "0ad05ae3009d6413d3363aa09b350b2ec37daf09"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"

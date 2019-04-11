@@ -56,7 +56,7 @@ func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) erro
 	namespacerecord.Name = namespace.Name
 	namespacerecord.NamespaceUserID = uid
 	namespacerecord.Cluster_ID = namespace.ClusterId
-	namespacerecord.Status = namespace.NamespaceStatus
+	namespacerecord.Status = namespace.Status
 	namespacerecord.Cluster_Name = namespace.ClusterName
 	namespacerecord.Creation_date = namespace.CreationDate
 	namespacerecord.Cpu_limit = namespace.CpuLimit
@@ -75,8 +75,8 @@ func (p *DB) UpdateNamespace(NamespaceId string, Namespace *common_proto.Namespa
 		fields["name"] = Namespace.Name
 	}
 
-	if Namespace.NamespaceStatus > 0 {
-		fields["status"] = Namespace.NamespaceStatus
+	if Namespace.Status > 0 {
+		fields["status"] = Namespace.Status
 	}
 	if Namespace.CpuLimit > 0 {
 		fields["Cpu_limit"] = Namespace.CpuLimit

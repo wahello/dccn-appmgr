@@ -59,7 +59,7 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 	message.Name = namespace.Name
 	message.ClusterId = namespace.Cluster_ID
 	message.ClusterName = namespace.Cluster_Name
-	message.NamespaceStatus = namespace.Status
+	message.Status = namespace.Status
 	message.CreationDate = namespace.Creation_date
 	message.CpuLimit = namespace.Cpu_limit
 	message.MemLimit = namespace.Mem_limit
@@ -104,12 +104,12 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 	namespace := appDeployment.Namespace
 	req.Namespace.Name = strings.ToLower(req.Namespace.Name)
 
-	if namespace.NamespaceStatus == common_proto.NamespaceStatus_NS_CANCELLED {
+	if namespace.Status == common_proto.NamespaceStatus_NS_CANCELLED {
 		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
 		return ankr_default.ErrAppStatusCanNotUpdate
 	}
 
-	namespace.NamespaceStatus = req.Namespace.NamespaceStatus
+	namespace.Status = req.Namespace.Status
 	namespace.CpuLimit = req.Namespace.CpuLimit
 	namespace.MemLimit = req.Namespace.MemLimit
 	namespace.StorageLimit = req.Namespace.StorageLimit
@@ -124,7 +124,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 		return err
 	}
 	// TODO: wait deamon notify
-	req.Namespace.NamespaceStatus = common_proto.NamespaceStatus_NS_UPDATING
+	req.Namespace.Status = common_proto.NamespaceStatus_NS_UPDATING
 	if err := p.db.UpdateNamespace(req.Namespace.Id, req.Namespace); err != nil {
 		log.Println(err.Error())
 		return err
@@ -152,7 +152,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 		return err
 	}
 	namespace := appDeployment.Namespace
-	if namespace.NamespaceStatus == common_proto.NamespaceStatus_NS_CANCELLED {
+	if namespace.Status == common_proto.NamespaceStatus_NS_CANCELLED {
 		return ankr_default.ErrCanceledTwice
 	}
 

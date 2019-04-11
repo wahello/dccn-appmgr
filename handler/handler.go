@@ -73,6 +73,7 @@ func getUserID(ctx context.Context) string {
 }
 
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest, rsp *appmgr.CreateAppResponse) error {
+
 	uid := getUserID(ctx)
 	log.Println("app manager service CreateApp")
 
@@ -81,6 +82,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	appDeployment.Name = req.App.Name
 
 	switch req.App.NamespaceData.(type) {
+
 	case *common_proto.App_NamespaceId:
 		namespaceRecord, err := p.db.GetNamespace(req.App.GetNamespaceId())
 		if err != nil {
@@ -88,24 +90,26 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			return errors.New("internal error: get namespace failed")
 		}
 		appDeployment.Namespace = &common_proto.Namespace{
-			Id:              namespaceRecord.ID,
-			Name:            namespaceRecord.Name,
-			ClusterId:       namespaceRecord.Cluster_ID,
-			ClusterName:     namespaceRecord.Cluster_Name,
-			CreationDate:    namespaceRecord.Creation_date,
-			CpuLimit:        namespaceRecord.Cpu_limit,
-			MemLimit:        namespaceRecord.Mem_limit,
-			StorageLimit:    namespaceRecord.Storage_limit,
-			NamespaceStatus: namespaceRecord.Status,
+			Id:           namespaceRecord.ID,
+			Name:         namespaceRecord.Name,
+			ClusterId:    namespaceRecord.Cluster_ID,
+			ClusterName:  namespaceRecord.Cluster_Name,
+			CreationDate: namespaceRecord.Creation_date,
+			CpuLimit:     namespaceRecord.Cpu_limit,
+			MemLimit:     namespaceRecord.Mem_limit,
+			StorageLimit: namespaceRecord.Storage_limit,
+			Status:       namespaceRecord.Status,
 		}
+
 	case *common_proto.App_Namespace:
 		appDeployment.Namespace = req.App.GetNamespace()
-		appDeployment.Namespace.NamespaceStatus = common_proto.NamespaceStatus_NS_STARTING
+		appDeployment.Namespace.Status = common_proto.NamespaceStatus_NS_STARTING
 		appDeployment.Namespace.Id = uuid.New().String()
 		if err := p.db.CreateNamespace(appDeployment.Namespace, uid); err != nil {
 			log.Println(err.Error())
 			return err
 		}
+
 	}
 
 	appDeployment.Status = common_proto.AppStatus_APP_STARTING
@@ -224,8 +228,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 
 	req.AppDeployment.Name = strings.ToLower(req.AppDeployment.Name)
 
-	if appDeployment.Status == common_proto.AppStatus_APP_CANCELLED ||
-		appDeployment.Status == common_proto.AppStatus_APP_DONE {
+	if appDeployment.Status == common_proto.AppStatus_APP_CANCELLED {
 		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
 		return ankr_default.ErrAppStatusCanNotUpdate
 	}
