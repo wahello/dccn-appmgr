@@ -17,9 +17,7 @@ func New(db db.DBService) *AppStatusFeedback {
 	return &AppStatusFeedback{db}
 }
 
-// UpdateAppByFeedback receives app result from data center, returns to v1
-// UpdateAppStatusByFeedback updates database status by performing feedback from the data center of the app.
-// sets executor's id, updates app status.
+// UHandlerFeedbackEventFromDataCenter receives app report result from data center and update record
 func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Context, stream *common_proto.DCStream) error {
 
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v with payload: %+v ", stream.GetOpType(), stream.GetOpPayload())
@@ -27,13 +25,15 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 	var collection string
 	var id string
 	switch stream.OpPayload.(type) {
-	case *common_proto.DCStream_AppDeployment:
-		appDeployment := stream.GetAppReport().AppDeployment
-		update = bson.M{"$set": bson.M{"status": appDeployment.Status, "namespace": appDeployment.Namespace}}
+
+	case *common_proto.DCStream_AppReport:
+		appReport := stream.GetAppReport()
+		update = bson.M{"$set": bson.M{"status": appReport.AppStatus, "namespace": appReport.AppDeployment.Namespace}}
 		collection = "app"
-		id = appDeployment.Id
+		id = appReport.AppDeployment.Id
 		if stream.OpType == common_proto.DCOperation_APP_CREATE {
-			p.db.Update("namespace", appDeployment.Namespace.Id, bson.M{"$set": bson.M{"status": appDeployment.Namespace.Status, "clusterid": appDeployment.Namespace.ClusterId, "clustername": appDeployment.Namespace.ClusterName}})
+			p.db.Update("namespace", appReport.AppDeployment.Namespace.Id, bson.M{"$set": bson.M{"status": appReport.AppDeployment.Namespace.Status,
+				"clusterid": appReport.AppDeployment.Namespace.ClusterId, "clustername": appReport.AppDeployment.Namespace.ClusterName}})
 		} // feedback  AppStatus_START_FAILED  AppStatus_START_SUCCESS => AppStatus_RUNNING
 
 	case *common_proto.DCStream_Namespace:

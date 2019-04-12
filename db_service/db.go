@@ -26,10 +26,10 @@ type DBService interface {
 	CreateApp(appDeployment *common_proto.AppDeployment, uid string) error
 	// Update updates collection item
 	Update(collectId string, Id string, update bson.M) error
-	// UpdateApp updates dc item
-	UpdateApp(appId string, app *common_proto.AppDeployment) error
+	// UpdateApp updates app item
+	UpdateApp(app *common_proto.AppDeployment, status common_proto.AppStatus) error
 	// Close closes db connection
-	UpdateNamespace(namespaceId string, namespace *common_proto.Namespace) error
+	UpdateNamespace(namespace *common_proto.Namespace) error
 
 	Close()
 	// for test usage
@@ -118,7 +118,7 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	appRecord.ID = appDeployment.Id
 	appRecord.Userid = uid
 	appRecord.Name = appDeployment.Name
-	appRecord.Status = appDeployment.Status
+	appRecord.Status = common_proto.AppStatus_APP_STARTING
 	appRecord.Namespace = *appDeployment.Namespace
 	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
@@ -127,7 +127,7 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	return p.collection(session, "app").Insert(appRecord)
 }
 
-// Update updates app item.
+// Update updates item.
 func (p *DB) Update(collection string, id string, update bson.M) error {
 	session := p.session.Copy()
 	defer session.Close()
@@ -135,24 +135,20 @@ func (p *DB) Update(collection string, id string, update bson.M) error {
 	return p.collection(session, collection).Update(bson.M{"id": id}, update)
 }
 
-func (p *DB) UpdateApp(appId string, app *common_proto.AppDeployment) error {
+func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment, status common_proto.AppStatus) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	fields := bson.M{}
 
-	if len(app.Name) > 0 {
-		fields["name"] = app.Name
-	}
-
-	if app.Status > 0 {
-		fields["status"] = app.Status
+	if status > 0 {
+		fields["status"] = status
 	}
 
 	now := time.Now().Unix()
 	fields["Last_modified_date"] = now
 
-	return p.collection(session, "app").Update(bson.M{"id": appId}, bson.M{"$set": fields})
+	return p.collection(session, "app").Update(bson.M{"id": appDeployment.Id}, bson.M{"$set": fields})
 
 	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
@@ -176,4 +172,93 @@ func (p *DB) dropCollection() {
 	if err != nil {
 		log.Println(err.Error())
 	}
+}
+
+type NamespaceRecord struct {
+	ID              string // short hash of uid+name+cluster_id
+	Name            string
+	NamespaceUserID string
+	Status          common_proto.NamespaceStatus
+	Cluster_ID      string //id of cluster
+	Cluster_Name    string //name of cluster
+	Creation_date   uint64
+	Cpu_limit       uint64
+	Mem_limit       uint64
+	Storage_limit   uint64
+}
+
+func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var namespace NamespaceRecord
+	err := p.collection(session, "namespace").Find(bson.M{"id": namespaceId}).One(&namespace)
+	return namespace, err
+}
+
+func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var namespaces []NamespaceRecord
+
+	log.Printf("find apps with uid %s", userId)
+
+	if err := p.collection(session, "namespace").Find(bson.M{"namespaceuserid": userId}).All(&namespaces); err != nil {
+		return nil, err
+	}
+	return namespaces, nil
+}
+
+func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	namespacerecord := NamespaceRecord{}
+	namespacerecord.ID = namespace.Id
+	namespacerecord.Name = namespace.Name
+	namespacerecord.NamespaceUserID = uid
+	namespacerecord.Cluster_ID = namespace.ClusterId
+	namespacerecord.Status = namespace.Status
+	namespacerecord.Cluster_Name = namespace.ClusterName
+	namespacerecord.Creation_date = namespace.CreationDate
+	namespacerecord.Cpu_limit = namespace.CpuLimit
+	namespacerecord.Mem_limit = namespace.MemLimit
+	namespacerecord.Storage_limit = namespace.StorageLimit
+	return p.collection(session, "namespace").Insert(namespacerecord)
+}
+
+func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	fields := bson.M{}
+
+	if len(namespace.Name) > 0 {
+		fields["name"] = namespace.Name
+	}
+
+	if namespace.Status > 0 {
+		fields["status"] = namespace.Status
+	}
+	if namespace.CpuLimit > 0 {
+		fields["cpu_limit"] = namespace.CpuLimit
+	}
+
+	if namespace.MemLimit > 0 {
+		fields["mem_limit"] = namespace.MemLimit
+	}
+	if namespace.StorageLimit > 0 {
+		fields["storage_limit"] = namespace.StorageLimit
+	}
+	return p.collection(session, "namespace").Update(bson.M{"id": namespace.Id}, bson.M{"$set": fields})
+
+}
+
+func (p *DB) CancelNamespace(NamespaceId string) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	now := time.Now().Unix()
+	return p.collection(session, "namespace").Update(bson.M{"id": NamespaceId}, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELLED, "Last_modified_date": now}})
 }

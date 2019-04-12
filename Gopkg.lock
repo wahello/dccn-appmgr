@@ -3,16 +3,17 @@
 
 [[projects]]
   branch = "feature/swdev-184-facade-gateway"
-  digest = "1:bdc2284fb9a0c855616cc2c8050612064eefad8523fa9b635a40c76d22b0eae8"
+  digest = "1:77da037108e1acb02ed59bfbb596ea720aba5926ccbc1e2d003a564636dcbb82"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
     "protos",
+    "protos/appmgr/v1/grpc",
     "protos/appmgr/v1/micro",
     "protos/common",
   ]
   pruneopts = "UT"
-  revision = "4ace57d47e56b314cacf108fb95b0efae3df6b54"
+  revision = "9afdea182053699cfed963938649fae39b93b21f"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -411,7 +412,7 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "38d8ce5564a5b71b2e3a00553993f1b9a7ae852f"
+  revision = "88737f569e3a9c7ab309cdc09a07fe7fc87233c3"
 
 [[projects]]
   branch = "master"
@@ -437,11 +438,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e2e51bf73862610e548f3acd292f447b500e53d792aa55260a8cb605dfd8ba09"
+  digest = "1:3e01c69b34e7c3fa4b7a118ca95a6beaecea00f7f4fb701545d83eacd3badb3c"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "0ad05ae3009d6413d3363aa09b350b2ec37daf09"
+  revision = "b44545bcd369ef9ff9bebcfebf5f3370ef9b1932"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -566,6 +567,7 @@
   input-imports = [
     "github.com/Ankr-network/dccn-common/db",
     "github.com/Ankr-network/dccn-common/protos",
+    "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc",
     "github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro",
     "github.com/Ankr-network/dccn-common/protos/common",
     "github.com/google/uuid",
@@ -573,6 +575,8 @@
     "github.com/micro/go-micro",
     "github.com/micro/go-micro/metadata",
     "github.com/micro/go-plugins/broker/rabbitmq",
+    "google.golang.org/grpc",
+    "google.golang.org/grpc/metadata",
     "gopkg.in/mgo.v2",
     "gopkg.in/mgo.v2/bson",
     "k8s.io/helm/pkg/chartutil",

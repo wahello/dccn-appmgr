@@ -16,7 +16,6 @@ spec:
         - name: dccn-appmgr
           image: 815280425737.dkr.ecr.us-west-2.amazonaws.com/dccn-appmgr:feat
           imagePullPolicy: Always
-          command: [ "/appmgr" ]
           env:
           - name: DB_COLLECTION
             value: app
