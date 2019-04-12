@@ -444,7 +444,7 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 		return errors.New("internal error: cannot open chart tar file")
 	}
 
-	chartReq, err := http.NewRequest("POST", getChartURL(url, uid, req.ChartRepo), file)
+	chartReq, err := http.NewRequest("POST", getChartURL(url+"/api", uid, req.ChartRepo), file)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot open chart tar file")
