@@ -25,6 +25,7 @@ import (
 	"github.com/micro/go-micro/metadata"
 	"gopkg.in/mgo.v2/bson"
 	"k8s.io/helm/pkg/chartutil"
+	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
 type AppMgrHandler struct {
@@ -77,18 +78,30 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	userID := getUserID(ctx)
 	log.Println("app manager service CreateApp")
 
+	if req.App == nil {
+		log.Printf("invalid input: null app provided, %+v \n", req.App)
+		return errors.New("invalid input: null app provided")
+	}
+
 	appDeployment := &common_proto.AppDeployment{}
 	appDeployment.Id = uuid.New().String()
 	appDeployment.Name = req.App.Name
 
+	if req.App.NamespaceData == nil {
+		log.Printf("invalid input: null namespace provided, %+v \n", req.App.NamespaceData)
+		return errors.New("invalid input: null namespace provided")
+	}
+
 	switch req.App.NamespaceData.(type) {
 
 	case *common_proto.App_NamespaceId:
+
 		namespaceRecord, err := p.db.GetNamespace(req.App.GetNamespaceId())
 		if err != nil {
 			log.Printf("get namespace failed, %s", err.Error())
 			return errors.New("internal error: get namespace failed")
 		}
+
 		appDeployment.Namespace = &common_proto.Namespace{
 			Id:           namespaceRecord.ID,
 			Name:         namespaceRecord.Name,
@@ -109,7 +122,6 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			log.Println(err.Error())
 			return err
 		}
-
 	}
 
 	appDeployment.ChartDetail = req.App.ChartDetail
@@ -216,6 +228,11 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 
 func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
 	userId := getUserID(ctx)
+
+	if req.AppDeployment == nil {
+		log.Printf("invalid input: null app deployment provided, %+v \n", req.AppDeployment)
+		return errors.New("invalid input: null app deployment provided")
+	}
 
 	if err := checkId(userId, req.AppDeployment.Id); err != nil {
 		log.Println(err.Error())
@@ -401,7 +418,7 @@ type Maintainer struct {
 
 var url string
 
-// CreateChart will upload chart file to the chartmuseum
+// CreateChart will upload chart file to the chartmuseum in user catalog under "/user/userID"
 func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChartRequest, rsp *common_proto.Empty) error {
 
 	log.Println("Uploading charts...")
@@ -409,20 +426,24 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 	uid := getUserID(ctx)
 
 	url = "http://chart-dev.dccn.ankr.network:8080"
+	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || len(req.ChartFile) == 0 {
+		log.Printf(" already exist, create failed.\n")
+		return errors.New("chart already exist, create failed")
+	}
 	query, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode == 200 {
 		log.Printf("chart already exist, create failed.\n")
 		return errors.New("chart already exist, create failed")
 	}
 
-	Chart, err := chartutil.LoadArchive(bytes.NewReader(req.ChartFile))
+	loadedChart, err := chartutil.LoadArchive(bytes.NewReader(req.ChartFile))
 	if err != nil {
 		log.Printf("cannot load chart from tar file, %s \n", req.ChartName, err.Error())
 		return errors.New("internal error: cannot load chart from tar file")
 	}
 
-	Chart.Metadata.Version = req.ChartVer
-	Chart.Metadata.Name = req.ChartName
+	loadedChart.Metadata.Version = req.ChartVer
+	loadedChart.Metadata.Name = req.ChartName
 
 	dest, err := os.Getwd()
 	if err != nil {
@@ -430,21 +451,21 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 		return errors.New("internal error: cannot get chart outdir")
 	}
 	log.Printf("save to outdir: %s\n", dest)
-	name, err := chartutil.Save(Chart, dest)
+	tarballName, err := chartutil.Save(loadedChart, dest)
 	if err == nil {
-		log.Printf("Successfully packaged chart and saved it to: %s\n", name)
+		log.Printf("Successfully packaged chart and saved it to: %s\n", tarballName)
 	} else {
 		log.Printf("Failed to save: %s", err)
 		return errors.New("internal error: Failed to save chart to outdir")
 	}
 
-	file, err := os.Open(name)
+	tarball, err := os.Open(tarballName)
 	if err != nil {
 		log.Printf("cannot open chart tar file")
 		return errors.New("internal error: cannot open chart tar file")
 	}
 
-	chartReq, err := http.NewRequest("POST", getChartURL(url+"/api", uid, req.ChartRepo), file)
+	chartReq, err := http.NewRequest("POST", getChartURL(url+"/api", uid, req.ChartRepo), tarball)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot open chart tar file")
@@ -455,11 +476,103 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 		log.Printf("cannot upload chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot upload chart tar file")
 	}
+
 	message, _ := ioutil.ReadAll(chartRes.Body)
 	defer chartRes.Body.Close()
-
 	log.Printf(string(message))
 
+	if err = os.Remove(tarballName); err != nil {
+		log.Printf("delete temp chart tarball failed, %s \n", err.Error())
+	}
+	return nil
+}
+
+// SaveValuesToChart will save modified values.yaml file to the chart and upload new version to the chartmuseum
+func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequest, rsp *common_proto.Empty) error {
+
+	log.Println("Saving charts...")
+
+	uid := getUserID(ctx)
+
+	url = "http://chart-dev.dccn.ankr.network:8080"
+	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
+		log.Printf("invalid input: empty chart properties not accepted \n")
+		return errors.New("invalid input: empty chart properties not accepted")
+	}
+
+	querySaveChart, err := http.Get(getChartURL(url+"/api", uid, req.SaveRepo) + "/" + req.SaveName + "/" + req.SaveVer)
+	if err != nil {
+		log.Printf("cannot get chart %s from chartmuseum\n", req.SaveName, err.Error())
+		return errors.New("internal error: cannot get chart from chartmuseum")
+	}
+	if querySaveChart.StatusCode == 200 {
+		log.Printf("invalid input: save chart already exist \n")
+		return errors.New("invalid input: save chart already exist")
+	}
+
+	queryOriginalChart, err := http.Get(getChartURL(url, uid, req.ChartRepo) + "/" + req.ChartName + "-" + req.ChartVer + ".tgz")
+	if err != nil {
+		log.Printf("cannot get chart %s from chartmuseum\n", req.ChartName, err.Error())
+		return errors.New("internal error: cannot get chart from chartmuseum")
+	}
+	if queryOriginalChart.StatusCode != 200 {
+		log.Printf("invalid input: original chart not exist \n")
+		return errors.New("invalid input: original chart not exist")
+	}
+
+	defer queryOriginalChart.Body.Close()
+
+	loadedChart, err := chartutil.LoadArchive(queryOriginalChart.Body)
+	if err != nil {
+		log.Printf("cannot load chart from the http get response from chartmuseum , %s \n", req.ChartName, err.Error())
+		return errors.New("internal error: cannot load chart from the http get response from chartmuseum")
+	}
+
+	loadedChart.Metadata.Version = req.SaveVer
+	loadedChart.Metadata.Name = req.SaveName
+	loadedChart.Values = &chart.Config{
+		Raw: string(req.ValuesFile),
+	}
+
+	dest, err := os.Getwd()
+	if err != nil {
+		log.Printf("cannot get chart outdir")
+		return errors.New("internal error: cannot get chart outdir")
+	}
+	log.Printf("save to outdir: %s\n", dest)
+	tarballName, err := chartutil.Save(loadedChart, dest)
+	if err == nil {
+		log.Printf("Successfully packaged chart and saved it to: %s\n", tarballName)
+	} else {
+		log.Printf("Failed to save: %s", err)
+		return errors.New("internal error: Failed to save chart to outdir")
+	}
+
+	tarball, err := os.Open(tarballName)
+	if err != nil {
+		log.Printf("cannot open chart tar file")
+		return errors.New("internal error: cannot open chart tar file")
+	}
+
+	chartReq, err := http.NewRequest("POST", getChartURL(url+"/api", uid, req.SaveRepo), tarball)
+	if err != nil {
+		log.Printf("cannot open chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot open chart tar file")
+	}
+
+	chartRes, err := http.DefaultClient.Do(chartReq)
+	if err != nil {
+		log.Printf("cannot upload chart tar file, %s \n", err.Error())
+		return errors.New("internal error: cannot upload chart tar file")
+	}
+
+	message, _ := ioutil.ReadAll(chartRes.Body)
+	defer chartRes.Body.Close()
+	log.Printf(string(message))
+
+	if err := os.Remove(tarballName); err != nil {
+		log.Printf("delete temp chart tarball failed, %s \n", err.Error())
+	}
 	return nil
 }
 
@@ -518,6 +631,12 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 	uid := getUserID(ctx)
 
 	url = "http://chart-dev.dccn.ankr.network:8080"
+
+	if req.Chart == nil {
+		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
+		return errors.New("invalid input: null chart provided")
+	}
+
 	chartRes, err := http.Get(getChartURL(url+"/api", uid, req.Chart.Repo) + "/" + req.Chart.Name)
 	if err != nil {
 		log.Printf("cannot get chart details, %s \n", err.Error())
@@ -582,6 +701,42 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 	if err != nil {
 		log.Printf("cannot find value in chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot find value in chart tar file")
+	}
+
+	return nil
+}
+
+// DownloadChart will return a specific chart tarball from the specific chartmuseum repo
+func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadChartRequest, rsp *appmgr.DownloadChartResponse) error {
+
+	log.Println("Download chart tarball...")
+
+	uid := getUserID(ctx)
+
+	url = "http://chart-dev.dccn.ankr.network:8080"
+
+	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" {
+		log.Printf("invalid input: null chart detail provided, %+v \n", req)
+		return errors.New("invalid input: null chart detail provided")
+	}
+
+	tarballReq, err := http.NewRequest("GET", getChartURL(url, uid, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
+	if err != nil {
+		log.Printf("cannot create show version tarball request, %s \n", err.Error())
+		return errors.New("internal error: create show version tarball request")
+	}
+
+	tarballRes, err := http.DefaultClient.Do(tarballReq)
+	if err != nil {
+		log.Printf("cannot download chart tarball, %s \n", err.Error())
+		return errors.New("internal error: cannot download chart tarball")
+	}
+	defer tarballRes.Body.Close()
+
+	rsp.ChartFile, err = ioutil.ReadAll(tarballRes.Body)
+	if err != nil {
+		log.Printf("cannot read chart tarball, %s \n", err.Error())
+		return errors.New("internal error: cannot read chart tarball")
 	}
 
 	return nil

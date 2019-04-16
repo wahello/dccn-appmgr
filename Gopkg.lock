@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "feature/swdev-184-facade-gateway"
-  digest = "1:77da037108e1acb02ed59bfbb596ea720aba5926ccbc1e2d003a564636dcbb82"
+  digest = "1:83e10aa67b8397775b9f25053c31738135982c5d0ef582249a821c4eb7d3dbf0"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -13,7 +13,7 @@
     "protos/common",
   ]
   pruneopts = "UT"
-  revision = "9afdea182053699cfed963938649fae39b93b21f"
+  revision = "d06b98a4016d5f9954c4be8e2e4937bd7511cac9"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -416,7 +416,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c1863f20af32e80ebefdc180096bd106471460e361f911648d0de190dfe71bbf"
+  digest = "1:af142d2017279bceabed2d82ef774b67f2ce50fbcc15484f585e3391e289cc3e"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -434,7 +434,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "eb5bcb51f2a31c7d5141d810b70815c05d9c9146"
+  revision = "4a65cf94b67935be46fbc55ddaea48ae3f7a1471"
 
 [[projects]]
   branch = "master"
@@ -442,7 +442,7 @@
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "b44545bcd369ef9ff9bebcfebf5f3370ef9b1932"
+  revision = "3fd5a3612ccd7907f26270fa92579a0f2f76f734"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -473,7 +473,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "64821d5d210748c883cd2b809589555ae4654203"
+  revision = "d1146b9035b912113a38af3b138eb2af567b2c67"
 
 [[projects]]
   digest = "1:31d87f39886fb38a2b6c097ff3b9f985d6960772170d64a68246f7790e955746"
@@ -544,7 +544,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "760d1845f48b6fcd90fb86273b3dee308de7017b"
+  revision = "07d458fe0356b9b486d0c5b4e23ea9cbf3744546"
 
 [[projects]]
   digest = "1:2f5dfa28c0ca9eb38083d4b782d427647f30a9bf3429f8a644358184408fdf45"
