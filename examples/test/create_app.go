@@ -43,10 +43,10 @@ func main() {
 	defer cancel()
 	//
 	app := common_proto.App{}
-	app.Name = "workpress_test"
+	app.Name = "wordpress_test"
 	app.ChartDetail = &common_proto.ChartDetail{
 		Repo:    "stable",
-		Name:    "workpress",
+		Name:    "wordpress",
 		Version: "5.7.1",
 	}
 	app.NamespaceData = &common_proto.App_Namespace{
