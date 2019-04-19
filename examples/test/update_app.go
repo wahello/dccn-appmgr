@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"os"
+
 	//	"github.com/Ankr-network/dccn-common/protos"
 
 	"log"
@@ -42,26 +44,19 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	app := common_proto.App{}
-	app.Name = "wordpress_test"
-	app.ChartDetail = &common_proto.ChartDetail{
+	appDeployment := common_proto.AppDeployment{}
+	appDeployment.Id = os.Args[0]
+	appDeployment.Name = "wordpress_test1"
+	appDeployment.ChartDetail = &common_proto.ChartDetail{
 		Repo:    "stable",
 		Name:    "wordpress",
-		Version: "5.7.0",
-	}
-	app.NamespaceData = &common_proto.App_Namespace{
-		Namespace: &common_proto.Namespace{
-			Name:         "test_ns1",
-			CpuLimit:     300,
-			MemLimit:     500,
-			StorageLimit: 10,
-		},
+		Version: "5.7.1",
 	}
 
-	if rsp, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app}); err != nil {
+	if _, err := appClient.UpdateApp(tokenContext, &appmgr.UpdateAppRequest{AppDeployment: &appDeployment}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("create app successfully : appid   " + rsp.AppId)
+		log.Println("update app successfully : appid   " + appDeployment.Id)
 	}
 
 }

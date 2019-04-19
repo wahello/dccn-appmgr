@@ -27,30 +27,95 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 	switch stream.OpPayload.(type) {
 
 	case *common_proto.DCStream_AppReport:
+
 		appReport := stream.GetAppReport()
-		update = bson.M{"$set": bson.M{
-			"status": appReport.AppStatus,
-			"event":  appReport.AppEvent,
-			"detail": appReport.Detail,
-			"report": appReport.Report}}
-		if stream.OpType == common_proto.DCOperation_APP_CREATE {
-			update["namespace"] = bson.M{"cluserid": appReport.AppDeployment.Namespace.ClusterId,
-				"clustername": appReport.AppDeployment.Namespace.ClusterName}
+
+		appRecord, err := p.db.GetApp(appReport.AppDeployment.Id)
+		if err != nil {
+			log.Println(err.Error())
+			return err
 		}
+
+		update = bson.M{"$set": bson.M{
+			"report": appReport.Report,
+			"event":  appReport.AppEvent}}
+
+		switch stream.OpType {
+		case common_proto.DCOperation_APP_CREATE:
+			if appRecord.Status == common_proto.AppStatus_APP_DISPATCHING ||
+				appRecord.Status == common_proto.AppStatus_APP_LAUNCHING {
+				switch appReport.AppEvent {
+				case common_proto.AppEvent_LAUNCH_APP_SUCCEED:
+					update["status"] = common_proto.AppStatus_APP_RUNNING
+				case common_proto.AppEvent_LAUNCH_APP_FAILED:
+					update["status"] = common_proto.AppStatus_APP_FAILED
+				case common_proto.AppEvent_DISPATCH_APP:
+					update["status"] = common_proto.AppStatus_APP_LAUNCHING
+				}
+			}
+		case common_proto.DCOperation_APP_UPDATE:
+			if appRecord.Status == common_proto.AppStatus_APP_UPDATING {
+				switch appReport.AppEvent {
+				case common_proto.AppEvent_UPDATE_APP_SUCCEED:
+					update["status"] = common_proto.AppStatus_APP_RUNNING
+				case common_proto.AppEvent_UPDATE_APP_FAILED:
+					update["status"] = common_proto.AppStatus_APP_UPDATE_FAILED
+				}
+			}
+		case common_proto.DCOperation_APP_CANCEL:
+			update["status"] = common_proto.AppStatus_APP_CANCELED
+		case common_proto.DCOperation_APP_DETAIL:
+			update["detail"] = appReport.Detail
+		}
+
 		collection = "app"
 		id = appReport.AppDeployment.Id
 
 	case *common_proto.DCStream_NsReport:
+
 		nsReport := stream.GetNsReport()
+
+		nsRecord, err := p.db.GetNamespace(nsReport.Namespace.Id)
+		if err != nil {
+			log.Println(err.Error())
+			return err
+		}
+
 		update = bson.M{"$set": bson.M{
 			"status": nsReport.NsStatus,
 			"event":  nsReport.NsEvent}}
-		if stream.OpType == common_proto.DCOperation_NS_CREATE {
-			update["clusterid"] = nsReport.Namespace.ClusterId
-			update["clustername"] = nsReport.Namespace.ClusterName
+
+		switch stream.OpType {
+		case common_proto.DCOperation_NS_CREATE:
+			if nsRecord.Status == common_proto.NamespaceStatus_NS_DISPATCHING ||
+				nsRecord.Status == common_proto.NamespaceStatus_NS_LAUNCHING {
+				update["clusterid"] = nsReport.Namespace.ClusterId
+				update["clustername"] = nsReport.Namespace.ClusterName
+				switch nsReport.NsEvent {
+				case common_proto.NamespaceEvent_LAUNCH_NS_SUCCEED:
+					update["status"] = common_proto.NamespaceStatus_NS_RUNNING
+				case common_proto.NamespaceEvent_LAUNCH_NS_FAILED:
+					update["status"] = common_proto.NamespaceStatus_NS_FAILED
+				case common_proto.NamespaceEvent_DISPATCH_NS:
+					update["status"] = common_proto.NamespaceStatus_NS_LAUNCHING
+				}
+			}
+		case common_proto.DCOperation_NS_UPDATE:
+			if nsRecord.Status == common_proto.NamespaceStatus_NS_UPDATING {
+				switch nsReport.NsEvent {
+				case common_proto.NamespaceEvent_UPDATE_NS_SUCCEED:
+					update["status"] = common_proto.NamespaceStatus_NS_RUNNING
+				case common_proto.NamespaceEvent_UPDATE_NS_FAILED:
+					update["status"] = common_proto.NamespaceStatus_NS_UPDATE_FAILED
+				}
+			}
+		case common_proto.DCOperation_NS_CANCEL:
+			update["status"] = common_proto.NamespaceStatus_NS_CANCELED
 		}
+
 		collection = "namespace"
 		id = nsReport.Namespace.Id
+
 	}
 
 	return p.db.Update(collection, id, update)

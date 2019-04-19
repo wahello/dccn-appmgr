@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "feature/swdev-184-facade-gateway"
-  digest = "1:11544603a4b721fd4bf2705b698671a3e57426784e87355a9cddcda382a74c72"
+  digest = "1:3e35cfad785e25a274feaf14067d6b679c81e8667f2ac0ae1a7d820238e224f5"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -13,7 +13,7 @@
     "protos/common",
   ]
   pruneopts = "UT"
-  revision = "598788df14ed24bf45aa6b16073175e32dce537b"
+  revision = "53f105bad2b56f8c6b26ea540c2f19d03860610c"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -149,12 +149,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:b8ba23b0b493e601d5ebaf21079bd3433eb304a5d73c0fb40b8aea526e94f46b"
+  digest = "1:eba7a1f788fdd3bb76d724ea169217bb868df102e4314cce0310c56f09f62435"
   name = "github.com/hashicorp/go-msgpack"
   packages = ["codec"]
   pruneopts = "UT"
-  revision = "be3a5be7ee2202386d02936a19ae4fbde1c77800"
-  version = "v0.5.3"
+  revision = "c4a1f61d43c2788b8b6fd55304f01a96863eec94"
+  version = "v0.5.4"
 
 [[projects]]
   digest = "1:f668349b83f7d779567c880550534addeca7ebadfdcf44b0b9c39be61864b4b7"
@@ -416,7 +416,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:60230c55f7d9266f2bea90327a5bcb4af8dac69fa79f2bbe03955652f538b41c"
+  digest = "1:de32e608e8efd56924af4a3c9d28918373f4d8621d1cf72996abf62826805086"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -434,15 +434,15 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "1da14a5a36f220ea3f03470682b737b1dfd5de22"
+  revision = "1f3472d942ba824034fb77cab6a6cfc1bc8a2c3c"
 
 [[projects]]
   branch = "master"
-  digest = "1:d53852c73a1e10a3b9f26554fdea3f3a30f01652bc963417eb1d4f7baab8ce33"
+  digest = "1:dbe12489f5cb00d492e275a29528c9e336dbe5af75ce366f81c1911faf10733e"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "f0ce4c0180bef7e9c51babed693a6e47fdd8962f"
+  revision = "e8e3143a4f4a00f1fafef0dd82ba78223281b01b"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -476,7 +476,7 @@
   revision = "e7d98fc518a78c9f8b5ee77be7b0b317475d89e1"
 
 [[projects]]
-  digest = "1:31d87f39886fb38a2b6c097ff3b9f985d6960772170d64a68246f7790e955746"
+  digest = "1:707c3a5d10ed430ea767d73df122d9eb3dfb6312bbacc9f2e39204390686d1d0"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -513,8 +513,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "236199dd5f8031d698fb64091194aecd1c3895b2"
-  version = "v1.20.0"
+  revision = "25c4f928eaa6d96443009bd842389fb4fa48664e"
+  version = "v1.20.1"
 
 [[projects]]
   branch = "v2"
@@ -544,7 +544,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "b789a6e6b31f49e34cd0b0876791677a85bbb375"
+  revision = "b3683fe6b520ef3222f3e9b7bb0a10f00be898a9"
 
 [[projects]]
   digest = "1:2f5dfa28c0ca9eb38083d4b782d427647f30a9bf3429f8a644358184408fdf45"

@@ -48,10 +48,11 @@ type AppRecord struct {
 	ID          string
 	UID         string
 	Name        string
-	Namespace   common_proto.Namespace // mongodb name is low field
+	NamespaceID string                 // mongodb name is low field
 	Status      common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
 	Event       common_proto.AppEvent
 	Detail      string
+	Report      string
 	Hidden      bool
 	Attributes  common_proto.AppAttributes
 	ChartDetail common_proto.ChartDetail
@@ -122,7 +123,7 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	appRecord.Name = appDeployment.Name
 	appRecord.Status = common_proto.AppStatus_APP_DISPATCHING
 	appRecord.Event = common_proto.AppEvent_DISPATCH_APP
-	appRecord.Namespace = *appDeployment.Namespace
+	appRecord.NamespaceID = appDeployment.Namespace.Id
 	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
 	appRecord.Attributes.LastModifiedDate = uint64(now)

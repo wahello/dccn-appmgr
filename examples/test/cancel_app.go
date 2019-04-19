@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"os"
+
 	//	"github.com/Ankr-network/dccn-common/protos"
 
 	"log"
@@ -10,9 +12,7 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	//	apiCommon "github.com/Ankr-network/dccn-hub/app-dccn-api/examples/common"
 )
 
@@ -42,26 +42,15 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	app := common_proto.App{}
-	app.Name = "wordpress_test"
-	app.ChartDetail = &common_proto.ChartDetail{
-		Repo:    "stable",
-		Name:    "wordpress",
-		Version: "5.7.0",
-	}
-	app.NamespaceData = &common_proto.App_Namespace{
-		Namespace: &common_proto.Namespace{
-			Name:         "test_ns1",
-			CpuLimit:     300,
-			MemLimit:     500,
-			StorageLimit: 10,
-		},
+
+	appID := appmgr.AppID{
+		AppId: os.Args[0],
 	}
 
-	if rsp, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app}); err != nil {
+	if _, err := appClient.CancelApp(tokenContext, &appID); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("create app successfully : appid   " + rsp.AppId)
+		log.Println("cancel app successfully : appid   " + os.Args[0])
 	}
 
 }

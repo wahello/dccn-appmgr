@@ -84,7 +84,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	}
 
 	appDeployment := &common_proto.AppDeployment{}
-	appDeployment.Id = uuid.New().String()
+	appDeployment.Id = "app-" + uuid.New().String()
 	appDeployment.Name = req.App.Name
 
 	if req.App.NamespaceData == nil {
@@ -101,21 +101,26 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			log.Printf("get namespace failed, %s", err.Error())
 			return errors.New("internal error: get namespace failed")
 		}
+		if namespaceRecord.Status != common_proto.NamespaceStatus_NS_RUNNING {
+			log.Printf("namespace status not running")
+			return errors.New("internal error: namespace status not running")
+		}
 
 		appDeployment.Namespace = &common_proto.Namespace{
-			Id:           namespaceRecord.ID,
-			Name:         namespaceRecord.Name,
-			ClusterId:    namespaceRecord.ClusterID,
-			ClusterName:  namespaceRecord.ClusterName,
-			CreationDate: namespaceRecord.CreationDate,
-			CpuLimit:     namespaceRecord.CpuLimit,
-			MemLimit:     namespaceRecord.MemLimit,
-			StorageLimit: namespaceRecord.StorageLimit,
+			Id:               namespaceRecord.ID,
+			Name:             namespaceRecord.Name,
+			ClusterId:        namespaceRecord.ClusterID,
+			ClusterName:      namespaceRecord.ClusterName,
+			CreationDate:     namespaceRecord.CreationDate,
+			LastModifiedDate: namespaceRecord.LastModifiedDate,
+			CpuLimit:         namespaceRecord.CpuLimit,
+			MemLimit:         namespaceRecord.MemLimit,
+			StorageLimit:     namespaceRecord.StorageLimit,
 		}
 
 	case *common_proto.App_Namespace:
 		appDeployment.Namespace = req.App.GetNamespace()
-		appDeployment.Namespace.Id = uuid.New().String()
+		appDeployment.Namespace.Id = "ns-" + uuid.New().String()
 		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
 			log.Println(err.Error())
 			return err
@@ -150,10 +155,12 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *common_proto.Empty) error {
 	userID := getUserID(ctx)
 	log.Println("Debug into CancelApp")
+
 	if err := checkId(userID, req.AppId); err != nil {
 		log.Println(err.Error())
 		return err
 	}
+
 	app, err := p.checkOwner(userID, req.AppId)
 	if err != nil {
 		log.Println(err.Error())
@@ -174,7 +181,7 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 		return err
 	}
 
-	if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLING}}); err != nil {
+	if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELING}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -182,26 +189,32 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 	return nil
 }
 
-func convertToAppMessage(app db.AppRecord) common_proto.AppReport {
+func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppReport {
 	message := common_proto.AppDeployment{}
 	message.Id = app.ID
 	message.Name = app.Name
-	message.Namespace = &app.Namespace
 	message.Attributes = &app.Attributes
 	message.Uid = app.UID
 	message.ChartDetail = &app.ChartDetail
+	namespaceRecord, err := pdb.GetNamespace(app.NamespaceID)
+	if err != nil {
+		log.Printf("get namespace record failed, %s", err.Error())
+	}
+	namespace := convertFromNamespaceRecord(namespaceRecord)
+	message.Namespace = &namespace
 	appReport := common_proto.AppReport{
 		AppDeployment: &message,
 		AppStatus:     app.Status,
 		AppEvent:      app.Event,
+		Detail:        app.Detail,
+		Report:        app.Report,
 	}
 	return appReport
-
 }
 
 func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest, rsp *appmgr.AppListResponse) error {
 	userId := getUserID(ctx)
-	log.Println("app service into AppList")
+	log.Println("debug into AppList")
 
 	apps, err := p.db.GetAllApp(userId)
 	log.Printf(">>>>>>appMessage  %+v \n", apps)
@@ -214,7 +227,7 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 
 	for i := 0; i < len(apps); i++ {
 		if apps[i].Hidden != true {
-			appMessage := convertToAppMessage(apps[i])
+			appMessage := convertToAppMessage(apps[i], p.db)
 			log.Printf("appMessage  %+v \n", appMessage)
 			appsWithoutHidden = append(appsWithoutHidden, &appMessage)
 		}
@@ -226,7 +239,7 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 }
 
 func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *appmgr.AppDetailResponse) error {
-	log.Println("app service into AppList")
+	log.Println("debug into AppDetail")
 
 	appRecord, err := p.db.GetApp(req.AppId)
 	log.Printf(">>>>>>appMessage  %+v \n", appRecord)
@@ -236,7 +249,7 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 	}
 
 	if appRecord.Hidden != true {
-		appMessage := convertToAppMessage(appRecord)
+		appMessage := convertToAppMessage(appRecord, p.db)
 		rsp.AppReport = &appMessage
 		log.Printf("appMessage  %+v \n", appMessage)
 	}
@@ -263,19 +276,17 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 		return err
 	}
 
-	req.AppDeployment.Name = strings.ToLower(req.AppDeployment.Name)
-
-	if appReport.AppStatus == common_proto.AppStatus_APP_CANCELED {
-		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
-		return ankr_default.ErrAppStatusCanNotUpdate
+	if appReport.AppStatus != common_proto.AppStatus_APP_RUNNING &&
+		appReport.AppStatus != common_proto.AppStatus_APP_UPDATE_FAILED {
+		log.Println("app status is not running, cannot update")
+		return errors.New("invalid input: app status is not running, cannot update")
 	}
-
 	appDeployment := appReport.AppDeployment
 	appDeployment.ChartDetail = req.AppDeployment.ChartDetail
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_UPDATE,
-		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: req.AppDeployment},
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -370,17 +381,34 @@ func (p *AppMgrHandler) AppLeaderBoard(ctx context.Context, req *common_proto.Em
 }
 
 func (p *AppMgrHandler) PurgeApp(ctx context.Context, req *appmgr.AppID, rsp *common_proto.Empty) error {
-	error := p.CancelApp(ctx, req, rsp)
 
-	if error == ankr_default.ErrCanceledTwice {
-		return ankr_default.ErrPurgedTwice
+	appRecord, err := p.db.GetApp(req.AppId)
+
+	if err != nil {
+		log.Printf(" PurgeApp for app id %s not found \n", req.AppId)
+		return errors.New("invalid input: app id not found")
 	}
 
-	if error == nil {
-		log.Printf(" PurgeApp  %s \n", req.AppId)
-		p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"hidden": true}})
+	if appRecord.Hidden == true {
+		log.Printf(" app id %s already purged \n", req.AppId)
+		return errors.New("invalid input: app id already purged")
 	}
-	return error
+
+	if appRecord.Status != common_proto.AppStatus_APP_CANCELED {
+
+		if err := p.CancelApp(ctx, req, rsp); err != nil {
+			log.Printf(err.Error())
+			return err
+		}
+	}
+
+	log.Printf(" PurgeApp  %s \n", req.AppId)
+	if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"hidden": true}}); err != nil {
+		log.Printf(err.Error())
+		return err
+	}
+
+	return nil
 }
 
 func (p *AppMgrHandler) checkOwner(userId, appId string) (*common_proto.AppReport, error) {
@@ -396,7 +424,7 @@ func (p *AppMgrHandler) checkOwner(userId, appId string) (*common_proto.AppRepor
 		return nil, ankr_default.ErrUserNotOwn
 	}
 
-	appMessage := convertToAppMessage(appRecord)
+	appMessage := convertToAppMessage(appRecord, p.db)
 
 	return &appMessage, nil
 }
@@ -820,11 +848,10 @@ func extractFromTarfile(filename string, tarf *tar.Reader) (string, error) {
 
 func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateNamespaceRequest, rsp *common_proto.Empty) error {
 	uid := getUserID(ctx)
-	log.Println("app manager service CreateApp")
 
-	log.Printf("CreateNamespace Namespace %+v", req)
+	log.Printf("app manager service CreateNamespace: %+v", req)
 
-	req.Namespace.Id = uuid.New().String()
+	req.Namespace.Id = "ns-" + uuid.New().String()
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_CREATE,
@@ -835,7 +862,7 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateN
 		log.Println(ankr_default.ErrPublish)
 		return ankr_default.ErrPublish
 	} else {
-		log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
+		log.Println("app manager service send CreateNamespace MQ message to dc manager service (api)")
 	}
 
 	if err := p.db.CreateNamespace(req.Namespace, uid); err != nil {
@@ -910,20 +937,19 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 		log.Println(err.Error())
 		return err
 	}
-	req.Namespace.Name = strings.ToLower(req.Namespace.Name)
 
 	if namespaceRecord.Status == common_proto.NamespaceStatus_NS_CANCELED {
 		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
 		return ankr_default.ErrAppStatusCanNotUpdate
 	}
-
-	namespaceRecord.CpuLimit = req.Namespace.CpuLimit
-	namespaceRecord.MemLimit = req.Namespace.MemLimit
-	namespaceRecord.StorageLimit = req.Namespace.StorageLimit
+	namespace := convertFromNamespaceRecord(namespaceRecord)
+	namespace.CpuLimit = req.Namespace.CpuLimit
+	namespace.MemLimit = req.Namespace.MemLimit
+	namespace.StorageLimit = req.Namespace.StorageLimit
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_UPDATE,
-		OpPayload: &common_proto.DCStream_Namespace{Namespace: req.Namespace},
+		OpPayload: &common_proto.DCStream_Namespace{Namespace: &namespace},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -931,7 +957,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 		return err
 	}
 	// TODO: wait deamon notify
-	if err := p.db.UpdateNamespace(req.Namespace); err != nil {
+	if err := p.db.UpdateNamespace(&namespace); err != nil {
 		log.Println(err.Error())
 		return err
 	}
@@ -958,7 +984,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 	}
 
 	event := common_proto.DCStream{
-		OpType: common_proto.DCOperation_APP_CANCEL,
+		OpType: common_proto.DCOperation_NS_CANCEL,
 		OpPayload: &common_proto.DCStream_Namespace{Namespace: &common_proto.Namespace{
 			Id: req.Id,
 		}},
@@ -969,7 +995,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 		return err
 	}
 
-	if err := p.db.Update("namespace", req.Id, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELED}}); err != nil {
+	if err := p.db.Update("namespace", req.Id, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELING}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}
