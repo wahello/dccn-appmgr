@@ -28,22 +28,29 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 
 	case *common_proto.DCStream_AppReport:
 		appReport := stream.GetAppReport()
-		update = bson.M{"$set": bson.M{"status": appReport.AppStatus, "namespace": appReport.AppDeployment.Namespace}}
+		update = bson.M{"$set": bson.M{
+			"status": appReport.AppStatus,
+			"event":  appReport.AppEvent,
+			"detail": appReport.Detail,
+			"report": appReport.Report}}
+		if stream.OpType == common_proto.DCOperation_APP_CREATE {
+			update["namespace"] = bson.M{"cluserid": appReport.AppDeployment.Namespace.ClusterId,
+				"clustername": appReport.AppDeployment.Namespace.ClusterName}
+		}
 		collection = "app"
 		id = appReport.AppDeployment.Id
-		if stream.OpType == common_proto.DCOperation_APP_CREATE {
-			p.db.Update("namespace", appReport.AppDeployment.Namespace.Id, bson.M{"$set": bson.M{"status": appReport.AppDeployment.Namespace.Status,
-				"clusterid": appReport.AppDeployment.Namespace.ClusterId, "clustername": appReport.AppDeployment.Namespace.ClusterName}})
-		} // feedback  AppStatus_START_FAILED  AppStatus_START_SUCCESS => AppStatus_RUNNING
 
-	case *common_proto.DCStream_Namespace:
-		namespace := stream.GetNamespace()
-		update = bson.M{"$set": bson.M{"status": namespace.Status}}
+	case *common_proto.DCStream_NsReport:
+		nsReport := stream.GetNsReport()
+		update = bson.M{"$set": bson.M{
+			"status": nsReport.NsStatus,
+			"event":  nsReport.NsEvent}}
 		if stream.OpType == common_proto.DCOperation_NS_CREATE {
-			update = bson.M{"$set": bson.M{"status": namespace.Status, "clusterid": namespace.ClusterId, "clustername": namespace.ClusterName}}
+			update["clusterid"] = nsReport.Namespace.ClusterId
+			update["clustername"] = nsReport.Namespace.ClusterName
 		}
 		collection = "namespace"
-		id = namespace.Id
+		id = nsReport.Namespace.Id
 	}
 
 	return p.db.Update(collection, id, update)

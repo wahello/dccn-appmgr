@@ -27,7 +27,7 @@ type DBService interface {
 	// Update updates collection item
 	Update(collectId string, Id string, update bson.M) error
 	// UpdateApp updates app item
-	UpdateApp(app *common_proto.AppDeployment, status common_proto.AppStatus) error
+	UpdateApp(app *common_proto.AppDeployment) error
 	// Close closes db connection
 	UpdateNamespace(namespace *common_proto.Namespace) error
 
@@ -46,10 +46,12 @@ type DB struct {
 
 type AppRecord struct {
 	ID          string
-	Userid      string
+	UID         string
 	Name        string
 	Namespace   common_proto.Namespace // mongodb name is low field
 	Status      common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
+	Event       common_proto.AppEvent
+	Detail      string
 	Hidden      bool
 	Attributes  common_proto.AppAttributes
 	ChartDetail common_proto.ChartDetail
@@ -116,9 +118,10 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 
 	appRecord := AppRecord{}
 	appRecord.ID = appDeployment.Id
-	appRecord.Userid = uid
+	appRecord.UID = uid
 	appRecord.Name = appDeployment.Name
-	appRecord.Status = common_proto.AppStatus_APP_STARTING
+	appRecord.Status = common_proto.AppStatus_APP_DISPATCHING
+	appRecord.Event = common_proto.AppEvent_DISPATCH_APP
 	appRecord.Namespace = *appDeployment.Namespace
 	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
@@ -135,20 +138,18 @@ func (p *DB) Update(collection string, id string, update bson.M) error {
 	return p.collection(session, collection).Update(bson.M{"id": id}, update)
 }
 
-func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment, status common_proto.AppStatus) error {
+func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	fields := bson.M{}
-
-	if status > 0 {
-		fields["status"] = status
-	}
+	fields["status"] = common_proto.AppStatus_APP_UPDATING
 
 	now := time.Now().Unix()
 	fields["Last_modified_date"] = now
 
-	return p.collection(session, "app").Update(bson.M{"id": appDeployment.Id}, bson.M{"$set": fields})
+	return p.collection(session, "app").Update(
+		bson.M{"id": appDeployment.Id}, bson.M{"$set": fields})
 
 	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
@@ -159,7 +160,9 @@ func (p *DB) CancelApp(appId string) error {
 	defer session.Close()
 
 	now := time.Now().Unix()
-	return p.collection(session, "app").Update(bson.M{"id": appId}, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELLED, "Last_modified_date": now}})
+	return p.collection(session, "app").Update(bson.M{"id": appId},
+		bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELED,
+			"attributes": bson.M{"lastmodifieddate": now}}})
 }
 
 // Close closes the db connection.
@@ -175,16 +178,18 @@ func (p *DB) dropCollection() {
 }
 
 type NamespaceRecord struct {
-	ID              string // short hash of uid+name+cluster_id
-	Name            string
-	NamespaceUserID string
-	Status          common_proto.NamespaceStatus
-	Cluster_ID      string //id of cluster
-	Cluster_Name    string //name of cluster
-	Creation_date   uint64
-	Cpu_limit       uint64
-	Mem_limit       uint64
-	Storage_limit   uint64
+	ID               string // short hash of uid+name+cluster_id
+	Name             string
+	UID              string
+	ClusterID        string //id of cluster
+	ClusterName      string //name of cluster
+	LastModifiedDate uint64
+	CreationDate     uint64
+	CpuLimit         uint64
+	MemLimit         uint64
+	StorageLimit     uint64
+	Status           common_proto.NamespaceStatus
+	Event            common_proto.NamespaceEvent
 }
 
 func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
@@ -193,6 +198,7 @@ func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
 
 	var namespace NamespaceRecord
 	err := p.collection(session, "namespace").Find(bson.M{"id": namespaceId}).One(&namespace)
+
 	return namespace, err
 }
 
@@ -217,14 +223,15 @@ func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) erro
 	namespacerecord := NamespaceRecord{}
 	namespacerecord.ID = namespace.Id
 	namespacerecord.Name = namespace.Name
-	namespacerecord.NamespaceUserID = uid
-	namespacerecord.Cluster_ID = namespace.ClusterId
-	namespacerecord.Status = namespace.Status
-	namespacerecord.Cluster_Name = namespace.ClusterName
-	namespacerecord.Creation_date = namespace.CreationDate
-	namespacerecord.Cpu_limit = namespace.CpuLimit
-	namespacerecord.Mem_limit = namespace.MemLimit
-	namespacerecord.Storage_limit = namespace.StorageLimit
+	namespacerecord.UID = uid
+	namespacerecord.Status = common_proto.NamespaceStatus_NS_DISPATCHING
+	namespacerecord.Event = common_proto.NamespaceEvent_DISPATCH_NS
+	now := time.Now().Unix()
+	namespacerecord.LastModifiedDate = uint64(now)
+	namespacerecord.CreationDate = uint64(now)
+	namespacerecord.CpuLimit = namespace.CpuLimit
+	namespacerecord.MemLimit = namespace.MemLimit
+	namespacerecord.StorageLimit = namespace.StorageLimit
 	return p.collection(session, "namespace").Insert(namespacerecord)
 }
 
@@ -238,9 +245,6 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 		fields["name"] = namespace.Name
 	}
 
-	if namespace.Status > 0 {
-		fields["status"] = namespace.Status
-	}
 	if namespace.CpuLimit > 0 {
 		fields["cpu_limit"] = namespace.CpuLimit
 	}
@@ -251,7 +255,8 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 	if namespace.StorageLimit > 0 {
 		fields["storage_limit"] = namespace.StorageLimit
 	}
-	return p.collection(session, "namespace").Update(bson.M{"id": namespace.Id}, bson.M{"$set": fields})
+	return p.collection(session, "namespace").Update(bson.M{"id": namespace.Id},
+		bson.M{"$set": fields})
 
 }
 
@@ -260,5 +265,8 @@ func (p *DB) CancelNamespace(NamespaceId string) error {
 	defer session.Close()
 
 	now := time.Now().Unix()
-	return p.collection(session, "namespace").Update(bson.M{"id": NamespaceId}, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELLED, "Last_modified_date": now}})
+	return p.collection(session, "namespace").Update(
+		bson.M{"id": NamespaceId},
+		bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELED,
+			"Last_modified_date": now}})
 }
