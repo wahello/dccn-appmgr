@@ -45,7 +45,8 @@ func main() {
 	defer cancel()
 	//
 	appDeployment := common_proto.AppDeployment{}
-	appDeployment.Id = os.Args[0]
+	appDeployment.Id = os.Args[1]
+	log.Printf("APP ID: %s", appDeployment.Id)
 	appDeployment.Name = "wordpress_test1"
 	appDeployment.ChartDetail = &common_proto.ChartDetail{
 		Repo:    "stable",

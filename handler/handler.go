@@ -276,7 +276,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 		return err
 	}
 
-	if appReport.AppStatus != common_proto.AppStatus_APP_RUNNING &&
+	if appReport.AppStatus != common_proto.AppStatus_APP_RUNNING ||
 		appReport.AppStatus != common_proto.AppStatus_APP_UPDATE_FAILED {
 		log.Println("app status is not running, cannot update")
 		return errors.New("invalid input: app status is not running, cannot update")

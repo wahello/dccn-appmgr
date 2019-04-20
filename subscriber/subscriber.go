@@ -24,7 +24,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 	var update bson.M
 	var collection string
 	var id string
-	switch stream.OpPayload.(type) {
+	switch x := stream.OpPayload.(type) {
 
 	case *common_proto.DCStream_AppReport:
 
@@ -66,6 +66,8 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			update["status"] = common_proto.AppStatus_APP_CANCELED
 		case common_proto.DCOperation_APP_DETAIL:
 			update["detail"] = appReport.Detail
+		default:
+			log.Printf("OpType has unexpected type %v", stream.OpType)
 		}
 
 		collection = "app"
@@ -111,11 +113,15 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			}
 		case common_proto.DCOperation_NS_CANCEL:
 			update["status"] = common_proto.NamespaceStatus_NS_CANCELED
+		default:
+			log.Printf("OpType has unexpected type %v", stream.OpType)
 		}
 
 		collection = "namespace"
 		id = nsReport.Namespace.Id
 
+	default:
+		log.Printf("OpPayload has unexpected type %T", x)
 	}
 
 	return p.db.Update(collection, id, update)

@@ -44,13 +44,13 @@ func main() {
 	//
 
 	appID := appmgr.AppID{
-		AppId: os.Args[0],
+		AppId: os.Args[1],
 	}
 
 	if _, err := appClient.CancelApp(tokenContext, &appID); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("cancel app successfully : appid   " + os.Args[0])
+		log.Println("cancel app successfully : appid   " + os.Args[1])
 	}
 
 }
