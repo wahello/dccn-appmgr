@@ -41,7 +41,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			"event":  appReport.AppEvent,
 		}
 
-		switch stream.OpType {
+		switch y := stream.OpType {
 		case common_proto.DCOperation_APP_CREATE:
 			if appRecord.Status == common_proto.AppStatus_APP_DISPATCHING ||
 				appRecord.Status == common_proto.AppStatus_APP_LAUNCHING {
@@ -68,7 +68,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		case common_proto.DCOperation_APP_DETAIL:
 			update["detail"] = appReport.Detail
 		default:
-			log.Printf("OpType has unexpected type %v", stream.OpType)
+			log.Printf("OpType has unexpected type %v", y)
 		}
 
 		collection = "app"
@@ -84,7 +84,11 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			return err
 		}
 
-		switch stream.OpType {
+		update = bson.M{
+			"event": nsReport.NsEvent,
+		}
+
+		switch y := stream.OpType {
 		case common_proto.DCOperation_NS_CREATE:
 			if nsRecord.Status == common_proto.NamespaceStatus_NS_DISPATCHING ||
 				nsRecord.Status == common_proto.NamespaceStatus_NS_LAUNCHING {
@@ -111,7 +115,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		case common_proto.DCOperation_NS_CANCEL:
 			update["status"] = common_proto.NamespaceStatus_NS_CANCELED
 		default:
-			log.Printf("OpType has unexpected type %v", stream.OpType)
+			log.Printf("OpType has unexpected type %v", y)
 		}
 
 		collection = "namespace"
