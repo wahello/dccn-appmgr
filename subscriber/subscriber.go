@@ -123,6 +123,6 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 	default:
 		log.Printf("OpPayload has unexpected type %T", x)
 	}
-
+	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Update Collection %s on ID %s Update: %s", collection, id, update)
 	return p.db.Update(collection, id, update)
 }
