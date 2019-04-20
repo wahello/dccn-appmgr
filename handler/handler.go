@@ -248,6 +248,15 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 		return err
 	}
 
+	event := common_proto.DCStream{
+		OpType:    common_proto.DCOperation_APP_DETAIL,
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: &common_proto.AppDeployment{Id: req.AppId}},
+	}
+	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
 	if appRecord.Hidden != true {
 		appMessage := convertToAppMessage(appRecord, p.db)
 		rsp.AppReport = &appMessage
@@ -276,7 +285,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 		return err
 	}
 
-	if appReport.AppStatus != common_proto.AppStatus_APP_RUNNING ||
+	if appReport.AppStatus != common_proto.AppStatus_APP_RUNNING &&
 		appReport.AppStatus != common_proto.AppStatus_APP_UPDATE_FAILED {
 		log.Println("app status is not running, cannot update")
 		return errors.New("invalid input: app status is not running, cannot update")
@@ -846,7 +855,7 @@ func extractFromTarfile(filename string, tarf *tar.Reader) (string, error) {
 	return file, nil
 }
 
-func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateNamespaceRequest, rsp *common_proto.Empty) error {
+func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateNamespaceRequest, rsp *appmgr.CreateNamespaceResponse) error {
 	uid := getUserID(ctx)
 
 	log.Printf("app manager service CreateNamespace: %+v", req)
@@ -869,6 +878,8 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateN
 		log.Println(err.Error())
 		return err
 	}
+
+	rsp.Id = req.Namespace.Id
 
 	return nil
 }

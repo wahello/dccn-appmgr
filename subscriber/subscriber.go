@@ -36,9 +36,10 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			return err
 		}
 
-		update = bson.M{"$set": bson.M{
+		update = bson.M{
 			"report": appReport.Report,
-			"event":  appReport.AppEvent}}
+			"event":  appReport.AppEvent,
+		}
 
 		switch stream.OpType {
 		case common_proto.DCOperation_APP_CREATE:
@@ -83,10 +84,6 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			return err
 		}
 
-		update = bson.M{"$set": bson.M{
-			"status": nsReport.NsStatus,
-			"event":  nsReport.NsEvent}}
-
 		switch stream.OpType {
 		case common_proto.DCOperation_NS_CREATE:
 			if nsRecord.Status == common_proto.NamespaceStatus_NS_DISPATCHING ||
@@ -124,5 +121,5 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		log.Printf("OpPayload has unexpected type %T", x)
 	}
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Update Collection %s on ID %s Update: %s", collection, id, update)
-	return p.db.Update(collection, id, update)
+	return p.db.Update(collection, id, bson.M{"$set": update})
 }

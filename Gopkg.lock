@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "feature/swdev-184-facade-gateway"
-  digest = "1:3e35cfad785e25a274feaf14067d6b679c81e8667f2ac0ae1a7d820238e224f5"
+  digest = "1:e7f4676ad096dc83e2048299546bb42f26c0cef145330d07a4b2bfa0fe7c0659"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -13,7 +13,7 @@
     "protos/common",
   ]
   pruneopts = "UT"
-  revision = "53f105bad2b56f8c6b26ea540c2f19d03860610c"
+  revision = "d27703ae21118ef353de6ae9013e71603cbdec46"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -544,7 +544,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "b3683fe6b520ef3222f3e9b7bb0a10f00be898a9"
+  revision = "b874eabb9a4eb99cef27db5c8d06f16542580cec"
 
 [[projects]]
   digest = "1:2f5dfa28c0ca9eb38083d4b782d427647f30a9bf3429f8a644358184408fdf45"
