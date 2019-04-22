@@ -201,7 +201,7 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 		log.Printf("get namespace record failed, %s", err.Error())
 	}
 	namespace := convertFromNamespaceRecord(namespaceRecord)
-	message.Namespace = &namespace
+	message.Namespace = namespace.Namespace
 	appReport := common_proto.AppReport{
 		AppDeployment: &message,
 		AppStatus:     app.Status,
@@ -884,19 +884,7 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateN
 	return nil
 }
 
-type NamespaceRecord struct {
-	ID              string // short hash of uid+name+cluster_id
-	Name            string
-	NamespaceUserID string
-	Cluster_ID      string //id of cluster
-	Cluster_Name    string //name of cluster
-	Creation_date   uint64
-	Cpu_limit       float64
-	Mem_limit       uint64
-	Storage_limit   uint64
-}
-
-func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Namespace {
+func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.NamespaceReport {
 	message := common_proto.Namespace{}
 	message.Id = namespace.ID
 	message.Name = namespace.Name
@@ -906,32 +894,36 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 	message.CpuLimit = namespace.CpuLimit
 	message.MemLimit = namespace.MemLimit
 	message.StorageLimit = namespace.StorageLimit
-	return message
-
+	namespaceReport := common_proto.NamespaceReport{
+		Namespace: &message,
+		NsEvent:   namespace.Event,
+		NsStatus:  namespace.Status,
+	}
+	return namespaceReport
 }
 
 func (p *AppMgrHandler) NamespaceList(ctx context.Context, req *appmgr.NamespaceListRequest, rsp *appmgr.NamespaceListResponse) error {
 	userId := getUserID(ctx)
 	log.Println("app service into NamespaceList")
 
-	namespaces, err := p.db.GetAllNamespace(userId)
-	log.Printf(">>>>>>NamespaceMessage  %+v \n", namespaces)
+	namespaceRecords, err := p.db.GetAllNamespace(userId)
+	log.Printf(">>>>>>NamespaceMessage  %+v \n", namespaceRecords)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	namespacesWithoutCancel := make([]*common_proto.Namespace, 0)
+	namespacesWithoutCancel := make([]*common_proto.NamespaceReport, 0)
 
-	for i := 0; i < len(namespaces); i++ {
-		if namespaces[i].Status != common_proto.NamespaceStatus_NS_CANCELED {
-			NamespaceMessage := convertFromNamespaceRecord(namespaces[i])
+	for i := 0; i < len(namespaceRecords); i++ {
+		if namespaceRecords[i].Status != common_proto.NamespaceStatus_NS_CANCELED {
+			NamespaceMessage := convertFromNamespaceRecord(namespaceRecords[i])
 			log.Printf("NamespaceMessage  %+v \n", NamespaceMessage)
 			namespacesWithoutCancel = append(namespacesWithoutCancel, &NamespaceMessage)
 		}
 	}
 
-	rsp.Namespaces = namespacesWithoutCancel
+	rsp.NamespaceReports = namespacesWithoutCancel
 
 	return nil
 }
@@ -949,18 +941,15 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 		return err
 	}
 
-	if namespaceRecord.Status == common_proto.NamespaceStatus_NS_CANCELED {
-		log.Println(ankr_default.ErrAppStatusCanNotUpdate.Error())
-		return ankr_default.ErrAppStatusCanNotUpdate
+	if namespaceRecord.Status != common_proto.NamespaceStatus_NS_RUNNING ||
+		namespaceRecord.Status != common_proto.NamespaceStatus_NS_UPDATE_FAILED {
+		log.Println("namespace status is not running, cannot update")
+		return errors.New("invalid input: namespace status is not running, cannot update")
 	}
-	namespace := convertFromNamespaceRecord(namespaceRecord)
-	namespace.CpuLimit = req.Namespace.CpuLimit
-	namespace.MemLimit = req.Namespace.MemLimit
-	namespace.StorageLimit = req.Namespace.StorageLimit
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_UPDATE,
-		OpPayload: &common_proto.DCStream_Namespace{Namespace: &namespace},
+		OpPayload: &common_proto.DCStream_Namespace{Namespace: req.Namespace},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -968,7 +957,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 		return err
 	}
 	// TODO: wait deamon notify
-	if err := p.db.UpdateNamespace(&namespace); err != nil {
+	if err := p.db.UpdateNamespace(req.Namespace); err != nil {
 		log.Println(err.Error())
 		return err
 	}

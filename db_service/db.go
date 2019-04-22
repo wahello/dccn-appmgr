@@ -45,17 +45,18 @@ type DB struct {
 }
 
 type AppRecord struct {
-	ID          string
-	UID         string
-	Name        string
-	NamespaceID string                 // mongodb name is low field
-	Status      common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
-	Event       common_proto.AppEvent
-	Detail      string
-	Report      string
-	Hidden      bool
-	Attributes  common_proto.AppAttributes
-	ChartDetail common_proto.ChartDetail
+	ID            string
+	UID           string
+	Name          string
+	NamespaceID   string                 // mongodb name is low field
+	Status        common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
+	Event         common_proto.AppEvent
+	Detail        string
+	Report        string
+	Hidden        bool
+	Attributes    common_proto.AppAttributes
+	ChartDetail   common_proto.ChartDetail
+	ChartUpdating common_proto.ChartDetail
 }
 
 // New returns DBService.
@@ -94,7 +95,7 @@ func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
 
 	log.Printf("find apps with uid %s", userId)
 
-	if err := p.collection(session, "app").Find(bson.M{"userid": userId}).All(&apps); err != nil {
+	if err := p.collection(session, "app").Find(bson.M{"uid": userId}).All(&apps); err != nil {
 		return nil, err
 	}
 	return apps, nil
@@ -147,7 +148,8 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	fields["status"] = common_proto.AppStatus_APP_UPDATING
 
 	now := time.Now().Unix()
-	fields["Last_modified_date"] = now
+	fields["lastmodifieddate"] = now
+	fields["chartupdating"] = appDeployment.ChartDetail
 
 	return p.collection(session, "app").Update(
 		bson.M{"id": appDeployment.Id}, bson.M{"$set": fields})
@@ -179,18 +181,22 @@ func (p *DB) dropCollection() {
 }
 
 type NamespaceRecord struct {
-	ID               string // short hash of uid+name+cluster_id
-	Name             string
-	UID              string
-	ClusterID        string //id of cluster
-	ClusterName      string //name of cluster
-	LastModifiedDate uint64
-	CreationDate     uint64
-	CpuLimit         uint64
-	MemLimit         uint64
-	StorageLimit     uint64
-	Status           common_proto.NamespaceStatus
-	Event            common_proto.NamespaceEvent
+	ID                   string // short hash of uid+name+cluster_id
+	Name                 string
+	NameUpdating         string
+	UID                  string
+	ClusterID            string //id of cluster
+	ClusterName          string //name of cluster
+	LastModifiedDate     uint64
+	CreationDate         uint64
+	CpuLimit             uint64
+	CpuLimitUpdating     uint64
+	MemLimit             uint64
+	MemLimitUpdating     uint64
+	StorageLimit         uint64
+	StorageLimitUpdating uint64
+	Status               common_proto.NamespaceStatus
+	Event                common_proto.NamespaceEvent
 }
 
 func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
@@ -211,7 +217,7 @@ func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
 
 	log.Printf("find apps with uid %s", userId)
 
-	if err := p.collection(session, "namespace").Find(bson.M{"namespaceuserid": userId}).All(&namespaces); err != nil {
+	if err := p.collection(session, "namespace").Find(bson.M{"uid": userId}).All(&namespaces); err != nil {
 		return nil, err
 	}
 	return namespaces, nil
@@ -243,18 +249,18 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 	fields := bson.M{}
 
 	if len(namespace.Name) > 0 {
-		fields["name"] = namespace.Name
+		fields["nameupdating"] = namespace.Name
 	}
 
 	if namespace.CpuLimit > 0 {
-		fields["cpu_limit"] = namespace.CpuLimit
+		fields["cpulimitupdating"] = namespace.CpuLimit
 	}
 
 	if namespace.MemLimit > 0 {
-		fields["mem_limit"] = namespace.MemLimit
+		fields["memlimitupdating"] = namespace.MemLimit
 	}
 	if namespace.StorageLimit > 0 {
-		fields["storage_limit"] = namespace.StorageLimit
+		fields["storagelimitupdating"] = namespace.StorageLimit
 	}
 	return p.collection(session, "namespace").Update(bson.M{"id": namespace.Id},
 		bson.M{"$set": fields})

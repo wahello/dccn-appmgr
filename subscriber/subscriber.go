@@ -3,6 +3,7 @@ package subscriber
 import (
 	"context"
 	"log"
+	"time"
 
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
@@ -37,8 +38,9 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		}
 
 		update = bson.M{
-			"report": appReport.Report,
-			"event":  appReport.AppEvent,
+			"report":           appReport.Report,
+			"event":            appReport.AppEvent,
+			"lastmodifieddate": time.Now().Unix(),
 		}
 
 		opType := stream.GetOpType()
@@ -60,6 +62,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 				switch appReport.AppEvent {
 				case common_proto.AppEvent_UPDATE_APP_SUCCEED:
 					update["status"] = common_proto.AppStatus_APP_RUNNING
+					update["chartdetail"] = appRecord.ChartUpdating
 				case common_proto.AppEvent_UPDATE_APP_FAILED:
 					update["status"] = common_proto.AppStatus_APP_UPDATE_FAILED
 				}
@@ -110,6 +113,10 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 				switch nsReport.NsEvent {
 				case common_proto.NamespaceEvent_UPDATE_NS_SUCCEED:
 					update["status"] = common_proto.NamespaceStatus_NS_RUNNING
+					update["name"] = nsRecord.NameUpdating
+					update["cpulimit"] = nsRecord.CpuLimitUpdating
+					update["memlimit"] = nsRecord.MemLimitUpdating
+					update["storagelimit"] = nsRecord.StorageLimitUpdating
 				case common_proto.NamespaceEvent_UPDATE_NS_FAILED:
 					update["status"] = common_proto.NamespaceStatus_NS_UPDATE_FAILED
 				}

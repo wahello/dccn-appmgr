@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"os"
+
 	//	"github.com/Ankr-network/dccn-common/protos"
 
 	"log"
@@ -43,17 +45,17 @@ func main() {
 	defer cancel()
 	//
 	namespace = &common_proto.Namespace{
-		Id: os.Args[1]
+		Id:           os.Args[1],
 		Name:         "test_ns2",
 		CpuLimit:     400,
 		MemLimit:     600,
 		StorageLimit: 20,
 	}
 
-	if _, err := appClient.UpdateNamespace(tokenContext, &appmgr.UpdateNamespaceRequest{Namespace: &namespace}); err != nil {
+	if _, err := appClient.UpdateNamespace(tokenContext, &appmgr.UpdateNamespaceRequest{Namespace: namespace}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("update app successfully ")
+		log.Println("update namespace successfully ")
 	}
 
 }
