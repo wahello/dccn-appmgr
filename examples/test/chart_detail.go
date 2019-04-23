@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 
 	//	"github.com/Ankr-network/dccn-common/protos"
 
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
+	common_protos "github.com/Ankr-network/dccn-common/protos/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
@@ -43,10 +43,15 @@ func main() {
 	defer cancel()
 	//
 
-	if res, err := appClient.AppDetail(tokenContext, &appmgr.AppID{AppId: os.Args[1]}); err != nil {
+	if rsp, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
+		Chart: &common_protos.Chart{
+			Name: "wordpress",
+			Repo: "stable"},
+		ShowVersion: "5.6.0",
+	}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("app id %s detail successfully : \n  %v ", os.Args[1], res.AppReport)
+		log.Printf(" chart list successfully  \n %+v \n\n %+v \n\n %+v ", rsp.Chartdetails, rsp.ShowReadme, rsp.ShowValues)
 	}
 
 }

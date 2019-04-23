@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+
 	//	"github.com/Ankr-network/dccn-common/protos"
 
 	"log"
@@ -45,7 +46,7 @@ func main() {
 	if _, err := appClient.DeleteNamespace(tokenContext, &appmgr.DeleteNamespaceRequest{Id: os.Args[1]}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("delete app successfully ")
+		log.Println("delete ns successfully ")
 	}
 
 }

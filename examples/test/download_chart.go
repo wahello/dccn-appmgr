@@ -1,8 +1,8 @@
 package main
 
 import (
+	"bytes"
 	"context"
-	"os"
 
 	//	"github.com/Ankr-network/dccn-common/protos"
 
@@ -12,6 +12,7 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"k8s.io/helm/pkg/chartutil"
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
 	//	apiCommon "github.com/Ankr-network/dccn-hub/app-dccn-api/examples/common"
 )
@@ -43,10 +44,18 @@ func main() {
 	defer cancel()
 	//
 
-	if res, err := appClient.AppDetail(tokenContext, &appmgr.AppID{AppId: os.Args[1]}); err != nil {
+	if rsp, err := appClient.DownloadChart(tokenContext, &appmgr.DownloadChartRequest{
+		ChartVer:  "5.6.0",
+		ChartName: "wordpress",
+		ChartRepo: "stable",
+	}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("app id %s detail successfully : \n  %v ", os.Args[1], res.AppReport)
+		loadedChart, err := chartutil.LoadArchive(bytes.NewReader(rsp.ChartFile))
+		if err != nil {
+			log.Panic(err.Error())
+		}
+		log.Printf(" chart download successfully \n\n %+v \n\n %+v ", loadedChart.Metadata.Version, loadedChart.Metadata.Name)
 	}
 
 }

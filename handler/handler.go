@@ -471,7 +471,7 @@ type Maintainer struct {
 	Email string `json:"email"`
 }
 
-var url string
+var chartmuseumURL string
 
 // CreateChart will upload chart file to the chartmuseum in user catalog under "/user/userID"
 func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChartRequest, rsp *common_proto.Empty) error {
@@ -480,12 +480,14 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 
 	uid := getUserID(ctx)
 
-	url = "http://chart-dev.dccn.ankr.network:8080"
+	if chartmuseumURL == "" {
+		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || len(req.ChartFile) == 0 {
 		log.Printf(" already exist, create failed.\n")
 		return errors.New("chart already exist, create failed")
 	}
-	query, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
+	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode == 200 {
 		log.Printf("chart already exist, create failed.\n")
 		return errors.New("chart already exist, create failed")
@@ -520,7 +522,7 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 		return errors.New("internal error: cannot open chart tar file")
 	}
 
-	chartReq, err := http.NewRequest("POST", getChartURL(url+"/api", uid, req.ChartRepo), tarball)
+	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo), tarball)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot open chart tar file")
@@ -549,13 +551,15 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 
 	uid := getUserID(ctx)
 
-	url = "http://chart-dev.dccn.ankr.network:8080"
+	if chartmuseumURL == "" {
+		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
 		log.Printf("invalid input: empty chart properties not accepted \n")
 		return errors.New("invalid input: empty chart properties not accepted")
 	}
 
-	querySaveChart, err := http.Get(getChartURL(url+"/api", uid, req.SaveRepo) + "/" + req.SaveName + "/" + req.SaveVer)
+	querySaveChart, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.SaveRepo) + "/" + req.SaveName + "/" + req.SaveVer)
 	if err != nil {
 		log.Printf("cannot get chart %s from chartmuseum\n", req.SaveName, err.Error())
 		return errors.New("internal error: cannot get chart from chartmuseum")
@@ -565,7 +569,7 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 		return errors.New("invalid input: save chart already exist")
 	}
 
-	queryOriginalChart, err := http.Get(getChartURL(url, uid, req.ChartRepo) + "/" + req.ChartName + "-" + req.ChartVer + ".tgz")
+	queryOriginalChart, err := http.Get(getChartURL(chartmuseumURL, uid, req.ChartRepo) + "/" + req.ChartName + "-" + req.ChartVer + ".tgz")
 	if err != nil {
 		log.Printf("cannot get chart %s from chartmuseum\n", req.ChartName, err.Error())
 		return errors.New("internal error: cannot get chart from chartmuseum")
@@ -609,7 +613,7 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 		return errors.New("internal error: cannot open chart tar file")
 	}
 
-	chartReq, err := http.NewRequest("POST", getChartURL(url+"/api", uid, req.SaveRepo), tarball)
+	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api", uid, req.SaveRepo), tarball)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot open chart tar file")
@@ -638,8 +642,10 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 
 	uid := getUserID(ctx)
 
-	url = "http://chart-dev.dccn.ankr.network:8080"
-	chartRes, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo))
+	if chartmuseumURL == "" {
+		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+	}
+	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo))
 	if err != nil {
 		log.Printf("cannot get chart list, %s \n", err.Error())
 		return errors.New("internal error: cannot get chart list")
@@ -685,14 +691,16 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 
 	uid := getUserID(ctx)
 
-	url = "http://chart-dev.dccn.ankr.network:8080"
+	if chartmuseumURL == "" {
+		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+	}
 
 	if req.Chart == nil {
 		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
 		return errors.New("invalid input: null chart provided")
 	}
 
-	chartRes, err := http.Get(getChartURL(url+"/api", uid, req.Chart.Repo) + "/" + req.Chart.Name)
+	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.Chart.Repo) + "/" + req.Chart.Name)
 	if err != nil {
 		log.Printf("cannot get chart details, %s \n", err.Error())
 		return errors.New("internal error: cannot get chart details")
@@ -724,7 +732,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 	}
 	rsp.Chartdetails = chartDetails
 
-	tarfileReq, err := http.NewRequest("GET", getChartURL(url, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
+	tarfileReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create show version tarball request, %s \n", err.Error())
 		return errors.New("internal error: create show version tarball request")
@@ -768,14 +776,16 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadC
 
 	uid := getUserID(ctx)
 
-	url = "http://chart-dev.dccn.ankr.network:8080"
+	if chartmuseumURL == "" {
+		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+	}
 
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" {
 		log.Printf("invalid input: null chart detail provided, %+v \n", req)
 		return errors.New("invalid input: null chart detail provided")
 	}
 
-	tarballReq, err := http.NewRequest("GET", getChartURL(url, uid, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
+	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create show version tarball request, %s \n", err.Error())
 		return errors.New("internal error: create show version tarball request")
@@ -801,14 +811,16 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context, req *appmgr.DeleteChart
 	log.Println("Deleting charts...")
 
 	uid := getUserID(ctx)
-	url = "http://chart-dev.dccn.ankr.network:8080"
-	query, err := http.Get(getChartURL(url+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
+	if chartmuseumURL == "" {
+		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+	}
+	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode != 200 {
 		log.Printf("chart not exist, delete failed.\n")
 		return errors.New("chart not exist, delete failed")
 	}
 
-	delReq, err := http.NewRequest("DELETE", getChartURL(url+"/api", uid, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
+	delReq, err := http.NewRequest("DELETE", getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
 	if err != nil {
 		log.Printf("cannot create delete chart request, %s \n", err.Error())
 		return errors.New("internal error: cannot create delete chart request")

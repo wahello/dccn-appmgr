@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"os"
+	"io/ioutil"
 
 	//	"github.com/Ankr-network/dccn-common/protos"
 
@@ -42,11 +42,21 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-
-	if res, err := appClient.AppDetail(tokenContext, &appmgr.AppID{AppId: os.Args[1]}); err != nil {
+	file, err := ioutil.ReadFile("values.yaml")
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	if rsp, err := appClient.SaveChart(tokenContext, &appmgr.SaveChartRequest{
+		ValueFile: file,
+		ChartName: "wordpress",
+		ChartVer:  "5.6.0",
+		ChartRepo: "stable",
+		SaveName:  "wordpress_nodeport",
+		SaveVer:   "5.6.1",
+		SaveRepo:  "stable"}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("app id %s detail successfully : \n  %v ", os.Args[1], res.AppReport)
+		log.Println("save chart successfully    ")
 	}
 
 }

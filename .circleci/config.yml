@@ -42,13 +42,16 @@ jobs:
             then
               BRANCH_NAME="dev"
               K8S_CLUSTER="stage.hub"
+              CHARTMUSEUM_URL="chart-stage.dccn.ankr.network"
             elif [[ ($BRANCH_NAME == "master") ]]
             then
               BRANCH_NAME="stage"
               K8S_CLUSTER="hub"
+              CHARTMUSEUM_URL="chart.dccn.ankr.network"
             else
               BRANCH_NAME="feat"
               K8S_CLUSTER="dev.hub"
+              CHARTMUSEUM_URL="chart-dev.dccn.ankr.network"
             fi
 
             declare -a component_arr=("dccn-appmgr")
@@ -63,7 +66,7 @@ jobs:
             dep ensure --vendor-only 
 
             for((i=0; i<arrlen; i++)); do
-              docker build --no-cache -f "dockerfile"/${dockerfile_arr[$i]}.Dockerfile -t ${component_arr[$i]}:$BRANCH_NAME .
+              docker build --no-cache --build-arg CHARTMUSEUM_URL=${CHARTMUSEUM_URL}  -f "dockerfile"/${dockerfile_arr[$i]}.Dockerfile -t ${component_arr[$i]}:$BRANCH_NAME .
               for TAG in $BRANCH_NAME $SHA1_SHORT $BRANCH_NAME$DATE; do
                 docker tag ${component_arr[$i]}:$BRANCH_NAME $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${component_arr[$i]}:$TAG
                 docker push $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${component_arr[$i]}:$TAG

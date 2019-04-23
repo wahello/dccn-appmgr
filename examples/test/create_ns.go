@@ -42,7 +42,7 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	namespace = &common_proto.Namespace{
+	namespace := &common_proto.Namespace{
 		Name:         "test_ns2",
 		CpuLimit:     300,
 		MemLimit:     500,
@@ -52,7 +52,7 @@ func main() {
 	if rsp, err := appClient.CreateNamespace(tokenContext, &appmgr.CreateNamespaceRequest{Namespace: &namespace}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("create app successfully : appid   " + rsp.Id)
+		log.Println("create ns successfully : nsid   " + rsp.Id)
 	}
 
 }

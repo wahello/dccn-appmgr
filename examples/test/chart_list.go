@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 
 	//	"github.com/Ankr-network/dccn-common/protos"
 
@@ -43,10 +42,12 @@ func main() {
 	defer cancel()
 	//
 
-	if res, err := appClient.AppDetail(tokenContext, &appmgr.AppID{AppId: os.Args[1]}); err != nil {
+	if rsp, err := appClient.ChartList(tokenContext, &appmgr.ChartListRequest{
+		ChartRepo: "stable",
+	}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("app id %s detail successfully : \n  %v ", os.Args[1], res.AppReport)
+		log.Printf(" chart list successfully  \n %+v ", rsp.Charts)
 	}
 
 }
