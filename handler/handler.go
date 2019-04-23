@@ -242,25 +242,25 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 	log.Println("debug into AppDetail")
 
 	appRecord, err := p.db.GetApp(req.AppId)
+
 	log.Printf(">>>>>>appMessage  %+v \n", appRecord)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
+	appMessage := convertToAppMessage(appRecord, p.db)
+	log.Printf("appMessage  %+v \n", appMessage)
+	rsp.AppReport = &appMessage
+
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_DETAIL,
-		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: &common_proto.AppDeployment{Id: req.AppId}},
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appMessage.AppDeployment},
 	}
+
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
 		log.Println(err.Error())
 		return err
-	}
-
-	if appRecord.Hidden != true {
-		appMessage := convertToAppMessage(appRecord, p.db)
-		rsp.AppReport = &appMessage
-		log.Printf("appMessage  %+v \n", appMessage)
 	}
 
 	return nil
