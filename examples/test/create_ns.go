@@ -49,7 +49,7 @@ func main() {
 		StorageLimit: 10,
 	}
 
-	if rsp, err := appClient.CreateNamespace(tokenContext, &appmgr.CreateNamespaceRequest{Namespace: &namespace}); err != nil {
+	if rsp, err := appClient.CreateNamespace(tokenContext, &appmgr.CreateNamespaceRequest{Namespace: namespace}); err != nil {
 		log.Fatal(err)
 	} else {
 		log.Println("create ns successfully : nsid   " + rsp.Id)

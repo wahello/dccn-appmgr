@@ -44,7 +44,7 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	namespace = &common_proto.Namespace{
+	namespace := &common_proto.Namespace{
 		Id:           os.Args[1],
 		Name:         "test_ns2",
 		CpuLimit:     400,

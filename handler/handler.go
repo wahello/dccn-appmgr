@@ -484,8 +484,8 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
 	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || len(req.ChartFile) == 0 {
-		log.Printf(" already exist, create failed.\n")
-		return errors.New("chart already exist, create failed")
+		log.Printf("invalid input, create failed.\n")
+		return errors.New("invalid input, create failed")
 	}
 	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode == 200 {
@@ -953,15 +953,21 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 		return err
 	}
 
-	if namespaceRecord.Status != common_proto.NamespaceStatus_NS_RUNNING ||
+	if namespaceRecord.Status != common_proto.NamespaceStatus_NS_RUNNING &&
 		namespaceRecord.Status != common_proto.NamespaceStatus_NS_UPDATE_FAILED {
 		log.Println("namespace status is not running, cannot update")
 		return errors.New("invalid input: namespace status is not running, cannot update")
 	}
 
+	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
+	namespaceReport.Namespace.CpuLimit = req.Namespace.CpuLimit
+	namespaceReport.Namespace.MemLimit = req.Namespace.MemLimit
+	namespaceReport.Namespace.StorageLimit = req.Namespace.StorageLimit
+	namespaceReport.Namespace.Name = req.Namespace.Name
+
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_UPDATE,
-		OpPayload: &common_proto.DCStream_Namespace{Namespace: req.Namespace},
+		OpPayload: &common_proto.DCStream_Namespace{Namespace: namespaceReport.Namespace},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -995,11 +1001,11 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 		return ankr_default.ErrCanceledTwice
 	}
 
+	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
+
 	event := common_proto.DCStream{
-		OpType: common_proto.DCOperation_NS_CANCEL,
-		OpPayload: &common_proto.DCStream_Namespace{Namespace: &common_proto.Namespace{
-			Id: req.Id,
-		}},
+		OpType:    common_proto.DCOperation_NS_CANCEL,
+		OpPayload: &common_proto.DCStream_Namespace{Namespace: namespaceReport.Namespace},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
