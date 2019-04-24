@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	if rsp, err := appClient.CreateChart(tokenContext, &appmgr.CreateChartRequest{
+	if _, err := appClient.CreateChart(tokenContext, &appmgr.CreateChartRequest{
 		ChartFile: file,
 		ChartName: "wordpress",
 		ChartVer:  "5.6.0",

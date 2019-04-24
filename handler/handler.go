@@ -732,39 +732,44 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 	}
 	rsp.Chartdetails = chartDetails
 
-	tarfileReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
+	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create show version tarball request, %s \n", err.Error())
 		return errors.New("internal error: create show version tarball request")
 	}
 
-	tarfileRes, err := http.DefaultClient.Do(tarfileReq)
+	tarballRes, err := http.DefaultClient.Do(tarballReq)
 	if err != nil {
-		log.Printf("cannot download chart tar file, %s \n", err.Error())
-		return errors.New("internal error: cannot download chart tar file")
+		log.Printf("cannot download chart tarball, %s \n", err.Error())
+		return errors.New("internal error: cannot download chart tarball")
 	}
-	defer tarfileRes.Body.Close()
+	defer tarballRes.Body.Close()
 
-	gzf, err := gzip.NewReader(tarfileRes.Body)
+	gzf, err := gzip.NewReader(tarballRes.Body)
 	if err != nil {
-		log.Printf("cannot open chart tar file, %s \n", err.Error())
-		return errors.New("internal error: cannot open chart tar file")
+		log.Printf("cannot open chart tarball, %s \n", err.Error())
+		return errors.New("internal error: cannot open chart tarball")
 	}
 	defer gzf.Close()
 
-	tarf := tar.NewReader(gzf)
+	tarball := tar.NewReader(gzf)
+	tarf := make(map[string]string)
+	tarf[req.Chart.Name+"/README.md"] = ""
+	tarf[req.Chart.Name+"/values.yaml"] = ""
 
-	rsp.ShowReadme, err = extractFromTarfile(req.Chart.Name+"/README.md", tarf)
-	if err != nil {
-		log.Printf("cannot find readme in chart tar file, %s \n", err.Error())
-		return errors.New("internal error: cannot find readme in chart tar file")
+	if err = extractFromTarfile(tarf, tarball); err != nil {
+		log.Printf("cannot find readme/value in chart tarball, %s \n", err.Error())
+		return errors.New("internal error: cannot find readme in chart tarball")
+	}
+	if tarf[req.Chart.Name+"/README.md"] == "" {
+		log.Printf("cannot find readme in chart tarball, %s \n", err.Error())
+	}
+	if tarf[req.Chart.Name+"/values.yaml"] == "" {
+		log.Printf("cannot find value in chart tarball, %s \n", err.Error())
 	}
 
-	rsp.ShowValues, err = extractFromTarfile(req.Chart.Name+"/values.yaml", tarf)
-	if err != nil {
-		log.Printf("cannot find value in chart tar file, %s \n", err.Error())
-		return errors.New("internal error: cannot find value in chart tar file")
-	}
+	rsp.ShowReadme = tarf[req.Chart.Name+"/README.md"]
+	rsp.ShowValues = tarf[req.Chart.Name+"/values.yaml"]
 
 	return nil
 }
@@ -846,25 +851,29 @@ func getChartURL(url string, uid string, repo string) string {
 	return url
 }
 
-func extractFromTarfile(filename string, tarf *tar.Reader) (string, error) {
-	var file string
-	for {
-		header, err := tarf.Next()
+func extractFromTarfile(tarf map[string]string, tarball *tar.Reader) error {
+
+	count := len(tarf)
+	for count > 0 {
+
+		header, err := tarball.Next()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return file, err
+			return err
 		}
 
-		if header.Name == filename {
+		if _, ok := tarf[header.Name]; ok {
 			var b bytes.Buffer
-			io.Copy(&b, tarf)
-			file = string(b.Bytes())
-			break
+			io.Copy(&b, tarball)
+			tarf[header.Name] = string(b.Bytes())
+			count--
 		}
+
 	}
-	return file, nil
+
+	return nil
 }
 
 func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateNamespaceRequest, rsp *appmgr.CreateNamespaceResponse) error {
