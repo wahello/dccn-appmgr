@@ -481,7 +481,7 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 	uid := getUserID(ctx)
 
 	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || len(req.ChartFile) == 0 {
 		log.Printf("invalid input, create failed.\n")
@@ -552,7 +552,7 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 	uid := getUserID(ctx)
 
 	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
 		log.Printf("invalid input: empty chart properties not accepted \n")
@@ -643,7 +643,7 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 	uid := getUserID(ctx)
 
 	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo))
 	if err != nil {
@@ -692,7 +692,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 	uid := getUserID(ctx)
 
 	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 
 	if req.Chart == nil {
@@ -782,7 +782,7 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadC
 	uid := getUserID(ctx)
 
 	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" {
@@ -817,7 +817,7 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context, req *appmgr.DeleteChart
 
 	uid := getUserID(ctx)
 	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.network:8080"
+		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode != 200 {

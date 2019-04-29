@@ -45,7 +45,7 @@ func main() {
 	file, err := os.Open(name)
 	check(err)
 
-	req, err := http.NewRequest("POST", "http://chart-dev.dccn.ankr.network:8080/api/public/nginx/charts", file)
+	req, err := http.NewRequest("POST", "http://chart-dev.dccn.ankr.com:8080/api/public/nginx/charts", file)
 	check(err)
 
 	res, err := http.DefaultClient.Do(req)

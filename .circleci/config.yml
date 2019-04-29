@@ -42,16 +42,16 @@ jobs:
             then
               BRANCH_NAME="dev"
               K8S_CLUSTER="stage.hub"
-              CHARTMUSEUM_URL="chart-stage.dccn.ankr.network"
+              CHARTMUSEUM_URL="chart-stage.dccn.ankr.com"
             elif [[ ($BRANCH_NAME == "master") ]]
             then
               BRANCH_NAME="stage"
               K8S_CLUSTER="hub"
-              CHARTMUSEUM_URL="chart.dccn.ankr.network"
+              CHARTMUSEUM_URL="chart.dccn.ankr.com"
             else
               BRANCH_NAME="feat"
               K8S_CLUSTER="dev.hub"
-              CHARTMUSEUM_URL="chart-dev.dccn.ankr.network"
+              CHARTMUSEUM_URL="chart-dev.dccn.ankr.com"
             fi
 
             declare -a component_arr=("dccn-appmgr")
