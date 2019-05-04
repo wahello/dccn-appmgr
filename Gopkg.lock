@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:1ca9eb53ada7bf024594588f04e75d6afb33c37d00e5cc779de2d388957cae0b"
+  digest = "1:afee0d073840c9817080bb7f611a9b681748c124b524251d0b854fc7d71a75b9"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -11,9 +11,10 @@
     "protos/appmgr/v1/grpc",
     "protos/appmgr/v1/micro",
     "protos/common",
+    "util",
   ]
   pruneopts = "UT"
-  revision = "5cdb42b986c2f943d4d923a3b69d29ae7f7a09ff"
+  revision = "dfd27fc5890b1cdf75f9f2873fd716a691eb42db"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -33,11 +34,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2210176f5644b328fb429f7d59b2944e598b22fda4b5071e09d6dcad001cdc37"
+  digest = "1:7a9140c806333a78122763d08ec6c0d7358c7fff1df8cfbb01881c5dc46e24e5"
   name = "github.com/armon/go-metrics"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2801d9688273d5b516966851b9a0863b9e6b0652"
+  revision = "ec5e00d3c878b2a97bbe0884ef45ffd1b4f669f5"
 
 [[projects]]
   digest = "1:ec66ad050342a3573ed2f5a4337d51b4c6d5d2a717cc6c9ecf86b081235a5759"
@@ -46,6 +47,14 @@
   pruneopts = "UT"
   revision = "a261ee33d7a517f054effbf451841abaafe3e0fd"
   version = "v0.2.2"
+
+[[projects]]
+  digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   digest = "1:2cd7915ab26ede7d95b8749e6b1f933f1c6d5398030684e6505940a10f31cfda"
@@ -149,12 +158,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:eba7a1f788fdd3bb76d724ea169217bb868df102e4314cce0310c56f09f62435"
+  digest = "1:5d8539af558ca2ea960a4c11afb12c75ae9e9dca3560f1103318aaa2030e37e2"
   name = "github.com/hashicorp/go-msgpack"
   packages = ["codec"]
   pruneopts = "UT"
-  revision = "c4a1f61d43c2788b8b6fd55304f01a96863eec94"
-  version = "v0.5.4"
+  revision = "ad60660ecf9c5a1eae0ca32182ed72bab5807961"
+  version = "v0.5.5"
 
 [[projects]]
   digest = "1:f668349b83f7d779567c880550534addeca7ebadfdcf44b0b9c39be61864b4b7"
@@ -324,12 +333,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:2b4b4b2e5544c2a11a486c1b631357aa2ddf766e50c1b2483cf809da2c511234"
+  digest = "1:3a3bc3c022d600ed4aced1d220d92c80bf3e42ff5acf95b59839f7af9ac53346"
   name = "github.com/miekg/dns"
   packages = ["."]
   pruneopts = "UT"
-  revision = "73601d4aed9d844322611759d7f3619110b7c88e"
-  version = "v1.1.8"
+  revision = "8aa92d4e02c501ba21e26fb92cf2fb9f23f56917"
+  version = "v1.1.9"
 
 [[projects]]
   digest = "1:5d231480e1c64a726869bc4142d270184c419749d34f167646baa21008eb0a79"
@@ -412,11 +421,11 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "d864b10871cd4370fe574816b489c819c675ccc7"
+  revision = "a29dc8fdc73485234dbef99ebedb95d2eced08de"
 
 [[projects]]
   branch = "master"
-  digest = "1:5af32d59e74926816761cb2ffada385a5d51ac8704e95af6943e6770477810c0"
+  digest = "1:705b25dc197e3942d74cd2d4134492fc93ea22760ca25048cd20d6ff43d1dadb"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -434,24 +443,26 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "afe8014c977f78fe2406743d9d32c8bd44d0542b"
+  revision = "f4e77d36d62c17c2336347bb2670ddbd02d092b7"
 
 [[projects]]
   branch = "master"
-  digest = "1:55565b142e38b7d00c39ce9a86fc70bbfa37c4f2f00d8ff2343f433c351db8e3"
+  digest = "1:1ddfda089b8a15d92242412aabc1107b8c7a87c609c09c5b441c81dbcca0ab79"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "953cdadca894cdc07be76fc99f95b40c28f06623"
+  revision = "a43fa875dd822b81eb6d2ad538bc1f4caba169bd"
 
 [[projects]]
-  digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
+  digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
   name = "golang.org/x/text"
   packages = [
     "collate",
     "collate/build",
     "internal/colltab",
     "internal/gen",
+    "internal/language",
+    "internal/language/compact",
     "internal/tag",
     "internal/triegen",
     "internal/ucd",
@@ -464,8 +475,8 @@
     "unicode/rangetable",
   ]
   pruneopts = "UT"
-  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
-  version = "v0.3.0"
+  revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
+  version = "v0.3.2"
 
 [[projects]]
   branch = "master"
@@ -473,7 +484,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "e7d98fc518a78c9f8b5ee77be7b0b317475d89e1"
+  revision = "54afdca5d873f7b529e2ce3def1a99df16feda90"
 
 [[projects]]
   digest = "1:707c3a5d10ed430ea767d73df122d9eb3dfb6312bbacc9f2e39204390686d1d0"
@@ -544,7 +555,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "11f1676e3da49fcc37a6bc42f77a77ce972a931f"
+  revision = "7a17edec881af3a031163d8fbc38242b2981d0ff"
 
 [[projects]]
   digest = "1:2f5dfa28c0ca9eb38083d4b782d427647f30a9bf3429f8a644358184408fdf45"
@@ -570,10 +581,10 @@
     "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc",
     "github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro",
     "github.com/Ankr-network/dccn-common/protos/common",
+    "github.com/Ankr-network/dccn-common/util",
     "github.com/google/uuid",
     "github.com/micro/go-grpc",
     "github.com/micro/go-micro",
-    "github.com/micro/go-micro/metadata",
     "github.com/micro/go-plugins/broker/rabbitmq",
     "google.golang.org/grpc",
     "google.golang.org/grpc/metadata",

@@ -5,24 +5,21 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	"github.com/Ankr-network/dccn-common/protos"
 	"github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro"
 	"github.com/Ankr-network/dccn-common/protos/common"
+	common_util "github.com/Ankr-network/dccn-common/util"
 	"github.com/google/uuid"
 	micro "github.com/micro/go-micro"
-	"github.com/micro/go-micro/metadata"
 	"gopkg.in/mgo.v2/bson"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -47,35 +44,9 @@ type Token struct {
 	Iss string
 }
 
-func getUserID(ctx context.Context) string {
-	meta, ok := metadata.FromContext(ctx)
-	// Note this is now uppercase (not entirely sure why this is...)
-	var token string
-	if ok {
-		token = meta["token"]
-	}
-
-	parts := strings.Split(token, ".")
-
-	decoded, err := base64.StdEncoding.DecodeString(parts[1])
-	if err != nil {
-		fmt.Println("decode error:", err)
-
-	}
-	fmt.Println(string(decoded))
-
-	var dat Token
-
-	if err := json.Unmarshal(decoded, &dat); err != nil {
-		panic(err)
-	}
-
-	return string(dat.Jti)
-}
-
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest, rsp *appmgr.CreateAppResponse) error {
 
-	userID := getUserID(ctx)
+	userID := common_util.GetUserID(ctx)
 	log.Println("app manager service CreateApp")
 
 	if req.App == nil {
@@ -153,7 +124,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 // Must return nil for gRPC handler
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *common_proto.Empty) error {
-	userID := getUserID(ctx)
+	userID := common_util.GetUserID(ctx)
 	log.Println("Debug into CancelApp")
 
 	if err := checkId(userID, req.AppId); err != nil {
@@ -213,7 +184,7 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 }
 
 func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest, rsp *appmgr.AppListResponse) error {
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 	log.Println("debug into AppList")
 
 	apps, err := p.db.GetAllApp(userId)
@@ -267,7 +238,7 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 }
 
 func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 
 	if req.AppDeployment == nil {
 		log.Printf("invalid input: null app deployment provided, %+v \n", req.AppDeployment)
@@ -313,7 +284,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty, rsp *appmgr.AppOverviewResponse) error {
 	log.Printf("AppOverview in app manager service\n")
 	//rsp = &appmgr.AppOverviewResponse{}
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 	apps, err := p.db.GetAllApp(userId)
 	failed := 0
 
@@ -367,7 +338,7 @@ func (p *AppMgrHandler) AppLeaderBoard(ctx context.Context, req *common_proto.Em
 		list = append(list, &detail)
 	}
 
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 	apps, err := p.db.GetAllApp(userId)
 	if err == nil && len(apps) > 0 {
 		offset := len(apps)
@@ -478,7 +449,7 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 
 	log.Println("Uploading charts...")
 
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
@@ -549,7 +520,7 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 
 	log.Println("Saving charts...")
 
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
@@ -640,7 +611,7 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 
 	log.Println("Checking for charts...")
 
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
@@ -689,7 +660,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 
 	log.Println("Checking for chart details...")
 
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
@@ -779,7 +750,7 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadC
 
 	log.Println("Download chart tarball...")
 
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
@@ -815,7 +786,7 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadC
 func (p *AppMgrHandler) DeleteChart(ctx context.Context, req *appmgr.DeleteChartRequest, res *common_proto.Empty) error {
 	log.Println("Deleting charts...")
 
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
@@ -877,7 +848,7 @@ func extractFromTarfile(tarf map[string]string, tarball *tar.Reader) error {
 }
 
 func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateNamespaceRequest, rsp *appmgr.CreateNamespaceResponse) error {
-	uid := getUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	log.Printf("app manager service CreateNamespace: %+v", req)
 
@@ -924,7 +895,7 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 }
 
 func (p *AppMgrHandler) NamespaceList(ctx context.Context, req *appmgr.NamespaceListRequest, rsp *appmgr.NamespaceListResponse) error {
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 	log.Println("app service into NamespaceList")
 
 	namespaceRecords, err := p.db.GetAllNamespace(userId)
@@ -950,7 +921,7 @@ func (p *AppMgrHandler) NamespaceList(ctx context.Context, req *appmgr.Namespace
 }
 
 func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateNamespaceRequest, rsp *common_proto.Empty) error {
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 
 	namespaceRecord, err := p.db.GetNamespace(req.Namespace.Id)
 	if err != nil {
@@ -992,7 +963,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 }
 
 func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteNamespaceRequest, rsp *common_proto.Empty) error {
-	userId := getUserID(ctx)
+	userId := common_util.GetUserID(ctx)
 	log.Println("Debug into DeleteNamespace")
 
 	namespaceRecord, err := p.db.GetNamespace(req.Id)
