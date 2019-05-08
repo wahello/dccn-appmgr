@@ -16,6 +16,7 @@ type DBService interface {
 	GetApp(id string) (AppRecord, error)
 	// GetAll gets all app related to user id.
 	GetAllApp(userId string) ([]AppRecord, error)
+	GetAppCount(userId string, clusterId string) ([]AppRecord, error)
 	GetNamespace(namespaceId string) (NamespaceRecord, error)
 	GetAllNamespace(userId string) ([]NamespaceRecord, error)
 	// CancelApp sets app status CANCEL
@@ -87,6 +88,38 @@ func (p *DB) GetApp(appId string) (AppRecord, error) {
 	return app, err
 }
 
+// Get gets app count by userid and clusterid.
+func (p *DB) GetAppCount(userId string, clusterId string) ([]AppRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var apps []AppRecord
+
+	log.Printf("find app count with uid %s clusterid %s", userId, clusterId)
+
+	if err := p.collection(session, "app").Find(bson.M{"uid": userId}).All(&apps); err != nil {
+		return nil, err
+	}
+
+	var res []AppRecord
+
+	if len(clusterId) == 0 {
+		for _, v := range apps {
+			var namespace NamespaceRecord
+			if err := p.collection(session, "namespace").Find(bson.M{"id": v.NamespaceID}).One(&namespace); err != nil {
+				return nil, err
+			}
+			if namespace.ClusterID == clusterId {
+				res = append(res, v)
+			}
+		}
+	} else {
+		res = apps
+	}
+
+	return res, nil
+}
+
 func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
@@ -101,13 +134,13 @@ func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
 	return apps, nil
 }
 
-// GetByEventId gets app by event id.
-func (p *DB) GetByEventId(eventId string) (*[]*common_proto.App, error) {
+// GetByEvent gets app by event id.
+func (p *DB) GetByEvent(event string) (*[]*common_proto.App, error) {
 	session := p.session.Copy()
 	defer session.Close()
 
 	var apps []*common_proto.App
-	if err := p.collection(session, "app").Find(bson.M{"eventid": eventId}).One(&apps); err != nil {
+	if err := p.collection(session, "app").Find(bson.M{"event": event}).One(&apps); err != nil {
 		return nil, err
 	}
 	return &apps, nil
@@ -145,6 +178,11 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	defer session.Close()
 
 	fields := bson.M{}
+	if len(appDeployment.Name) > 0 {
+		fields["name"] = appDeployment.Name
+	}
+
+	fields["event"] = common_proto.AppEvent_UPDATE_APP
 	fields["status"] = common_proto.AppStatus_APP_UPDATING
 
 	now := time.Now().Unix()
@@ -154,7 +192,6 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	return p.collection(session, "app").Update(
 		bson.M{"id": appDeployment.Id}, bson.M{"$set": fields})
 
-	//return p.collection(session).Update(bson.M{"id": appId}, app)
 }
 
 // Cancel cancel app, sets app status CANCEL
@@ -249,19 +286,15 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 	fields := bson.M{}
 
 	if len(namespace.Name) > 0 {
-		fields["nameupdating"] = namespace.Name
+		fields["name"] = namespace.Name
 	}
 
-	if namespace.CpuLimit > 0 {
+	if namespace.CpuLimit > 0 && namespace.MemLimit > 0 && namespace.StorageLimit > 0 {
 		fields["cpulimitupdating"] = namespace.CpuLimit
-	}
-
-	if namespace.MemLimit > 0 {
 		fields["memlimitupdating"] = namespace.MemLimit
-	}
-	if namespace.StorageLimit > 0 {
 		fields["storagelimitupdating"] = namespace.StorageLimit
 	}
+
 	return p.collection(session, "namespace").Update(bson.M{"id": namespace.Id},
 		bson.M{"$set": fields})
 

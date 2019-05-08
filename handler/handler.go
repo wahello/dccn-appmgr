@@ -47,7 +47,7 @@ type Token struct {
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest, rsp *appmgr.CreateAppResponse) error {
 
 	userID := common_util.GetUserID(ctx)
-	log.Println("app manager service CreateApp")
+	log.Println("app manager service CreateApp %+v", req)
 
 	if req.App == nil {
 		log.Printf("invalid input: null app provided, %+v \n", req.App)
@@ -183,7 +183,7 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 	return appReport
 }
 
-func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest, rsp *appmgr.AppListResponse) error {
+func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty, rsp *appmgr.AppListResponse) error {
 	userId := common_util.GetUserID(ctx)
 	log.Println("debug into AppList")
 
@@ -212,6 +212,16 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *appmgr.AppListRequest,
 func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *appmgr.AppDetailResponse) error {
 	log.Println("debug into AppDetail")
 
+	event := common_proto.DCStream{
+		OpType:    common_proto.DCOperation_APP_DETAIL,
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: &common_proto.AppDeployment{Id: req.AppId}},
+	}
+
+	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
 	appRecord, err := p.db.GetApp(req.AppId)
 
 	log.Printf(">>>>>>appMessage  %+v \n", appRecord)
@@ -221,28 +231,40 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 	}
 
 	appMessage := convertToAppMessage(appRecord, p.db)
-	log.Printf("appMessage  %+v \n", appMessage)
+	log.Printf("appMessage %+v \n", appMessage)
 	rsp.AppReport = &appMessage
-
-	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_APP_DETAIL,
-		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appMessage.AppDeployment},
-	}
-
-	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
-		log.Println(err.Error())
-		return err
-	}
 
 	return nil
 }
 
-func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
+func (p *AppMgrHandler) AppCount(ctx context.Context,
+	req *appmgr.AppCountRequest, rsp *appmgr.AppCountResponse) error {
+	log.Println("debug into AppCount %+v", req)
+
+	if len(req.UserId) == 0 || len(req.ClusterId) == 0 {
+		rsp.AppCount = 0
+	}
+
+	appRecord, err := p.db.GetAppCount(req.UserId, req.ClusterId)
+	if err != nil {
+		log.Println(err.Error())
+		return err
+	}
+
+	rsp.AppCount = uint64(len(appRecord))
+
+	return nil
+}
+
+func (p *AppMgrHandler) UpdateApp(ctx context.Context,
+	req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
+
 	userId := common_util.GetUserID(ctx)
 
-	if req.AppDeployment == nil {
-		log.Printf("invalid input: null app deployment provided, %+v \n", req.AppDeployment)
-		return errors.New("invalid input: null app deployment provided")
+	if req.AppDeployment == nil || (req.AppDeployment.ChartDetail == nil ||
+		len(req.AppDeployment.ChartDetail.Version) == 0) && len(req.AppDeployment.Name) == 0 {
+		log.Printf("invalid input: no valid update app parameters, %+v \n", req.AppDeployment)
+		return errors.New("invalid input: no valid update app parameters")
 	}
 
 	if err := checkId(userId, req.AppDeployment.Id); err != nil {
@@ -261,8 +283,17 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 		log.Println("app status is not running, cannot update")
 		return errors.New("invalid input: app status is not running, cannot update")
 	}
+
 	appDeployment := appReport.AppDeployment
-	appDeployment.ChartDetail = req.AppDeployment.ChartDetail
+
+	if len(req.AppDeployment.Name) > 0 {
+		appDeployment.Name = req.AppDeployment.Name
+	}
+
+	if req.AppDeployment.ChartDetail != nil &&
+		req.AppDeployment.ChartDetail.Version != appDeployment.ChartDetail.Version {
+		appDeployment.ChartDetail.Version = req.AppDeployment.ChartDetail.Version
+	}
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_UPDATE,
@@ -283,7 +314,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context, req *appmgr.UpdateAppRequ
 
 func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty, rsp *appmgr.AppOverviewResponse) error {
 	log.Printf("AppOverview in app manager service\n")
-	//rsp = &appmgr.AppOverviewResponse{}
+
 	userId := common_util.GetUserID(ctx)
 	apps, err := p.db.GetAllApp(userId)
 	failed := 0
@@ -315,7 +346,7 @@ func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty
 
 func (p *AppMgrHandler) AppLeaderBoard(ctx context.Context, req *common_proto.Empty, rsp *appmgr.AppLeaderBoardResponse) error {
 	log.Printf("AppleaderBoard in app manager service\n")
-	//rsp = &appmgr.AppLeaderBoardResponse{}
+
 	list := make([]*appmgr.AppLeaderBoardDetail, 0)
 	{
 		detail := appmgr.AppLeaderBoardDetail{}
@@ -444,10 +475,10 @@ type Maintainer struct {
 
 var chartmuseumURL string
 
-// CreateChart will upload chart file to the chartmuseum in user catalog under "/user/userID"
-func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChartRequest, rsp *common_proto.Empty) error {
+// UploadChart will upload chart file to the chartmuseum in user catalog under "/user/userID"
+func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChartRequest, rsp *common_proto.Empty) error {
 
-	log.Println("Uploading charts...")
+	log.Println("Uploading charts...%+v", req)
 
 	uid := common_util.GetUserID(ctx)
 
@@ -515,22 +546,26 @@ func (p *AppMgrHandler) CreateChart(ctx context.Context, req *appmgr.CreateChart
 	return nil
 }
 
-// SaveValuesToChart will save modified values.yaml file to the chart and upload new version to the chartmuseum
-func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequest, rsp *common_proto.Empty) error {
+// SaveAsChart will upload new version chart to the chartmuseum with new values.yaml
+func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChartRequest,
+	rsp *common_proto.Empty) error {
 
-	log.Println("Saving charts...")
+	log.Println("Saving charts...%+v", req)
 
 	uid := common_util.GetUserID(ctx)
 
 	if chartmuseumURL == "" {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
-	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
+	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" ||
+		req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
 		log.Printf("invalid input: empty chart properties not accepted \n")
 		return errors.New("invalid input: empty chart properties not accepted")
 	}
 
-	querySaveChart, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.SaveRepo) + "/" + req.SaveName + "/" + req.SaveVer)
+	querySaveChart, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
+		req.SaveRepo) + "/" + req.SaveName + "/" + req.SaveVer)
+
 	if err != nil {
 		log.Printf("cannot get chart %s from chartmuseum\n", req.SaveName, err.Error())
 		return errors.New("internal error: cannot get chart from chartmuseum")
@@ -540,7 +575,8 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 		return errors.New("invalid input: save chart already exist")
 	}
 
-	queryOriginalChart, err := http.Get(getChartURL(chartmuseumURL, uid, req.ChartRepo) + "/" + req.ChartName + "-" + req.ChartVer + ".tgz")
+	queryOriginalChart, err := http.Get(getChartURL(chartmuseumURL, uid,
+		req.ChartRepo) + "/" + req.ChartName + "-" + req.ChartVer + ".tgz")
 	if err != nil {
 		log.Printf("cannot get chart %s from chartmuseum\n", req.ChartName, err.Error())
 		return errors.New("internal error: cannot get chart from chartmuseum")
@@ -554,14 +590,15 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 
 	loadedChart, err := chartutil.LoadArchive(queryOriginalChart.Body)
 	if err != nil {
-		log.Printf("cannot load chart from the http get response from chartmuseum , %s \n", req.ChartName, err.Error())
-		return errors.New("internal error: cannot load chart from the http get response from chartmuseum")
+		log.Printf("cannot load chart from the http get response from chartmuseum , %s \n",
+			req.ChartName, err.Error())
+		return errors.New("internal error: cannot load chart from http get response from chartmuseum")
 	}
 
 	loadedChart.Metadata.Version = req.SaveVer
 	loadedChart.Metadata.Name = req.SaveName
 	loadedChart.Values = &chart.Config{
-		Raw: string(req.ValuesFile),
+		Raw: string(req.ValuesYaml),
 	}
 
 	dest, err := os.Getwd()
@@ -584,7 +621,8 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 		return errors.New("internal error: cannot open chart tar file")
 	}
 
-	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api", uid, req.SaveRepo), tarball)
+	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api",
+		uid, req.SaveRepo), tarball)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return errors.New("internal error: cannot open chart tar file")
@@ -607,14 +645,18 @@ func (p *AppMgrHandler) SaveChart(ctx context.Context, req *appmgr.SaveChartRequ
 }
 
 // ChartList will return a list of charts from the specific chartmuseum repo
-func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequest, rsp *appmgr.ChartListResponse) error {
+func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequest,
+	rsp *appmgr.ChartListResponse) error {
 
-	log.Println("Checking for charts...")
+	log.Println("Checking for charts...%+v", req)
 
 	uid := common_util.GetUserID(ctx)
 
-	if chartmuseumURL == "" {
+	if len(chartmuseumURL) == 0 {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
+	}
+	if len(req.ChartRepo) == 0 {
+		req.ChartRepo = "stable"
 	}
 	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo))
 	if err != nil {
@@ -655,23 +697,25 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 	return nil
 }
 
-// ChartDetail will return a list of specific chart versions from the specific chartmuseum repo
-func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetailRequest, rsp *appmgr.ChartDetailResponse) error {
+// ChartDetail will return a list of specific chart versions from the chartmuseum repo
+func (p *AppMgrHandler) ChartDetail(ctx context.Context,
+	req *appmgr.ChartDetailRequest, rsp *appmgr.ChartDetailResponse) error {
 
-	log.Println("Checking for chart details...")
+	log.Println("Checking for chart details... %+v", req)
 
 	uid := common_util.GetUserID(ctx)
 
-	if chartmuseumURL == "" {
+	if len(chartmuseumURL) == 0 {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 
-	if req.Chart == nil {
+	if req.Chart == nil || len(req.Chart.Name) == 0 || len(req.Chart.Repo) == 0 {
 		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
 		return errors.New("invalid input: null chart provided")
 	}
 
-	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.Chart.Repo) + "/" + req.Chart.Name)
+	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api",
+		uid, req.Chart.Repo) + "/" + req.Chart.Name)
 	if err != nil {
 		log.Printf("cannot get chart details, %s \n", err.Error())
 		return errors.New("internal error: cannot get chart details")
@@ -691,19 +735,21 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 		return errors.New("internal error: cannot unmarshal chart details")
 	}
 
-	chartDetails := make([]*common_proto.ChartDetail, 0)
+	rsp.Name = req.Chart.Name
+	rsp.Repo = req.Chart.Repo
+
+	versionDetails := make([]*common_proto.VersionDetail, 0)
 	for _, v := range data {
-		chartdetail := common_proto.ChartDetail{
-			Name:       v.Name,
-			Repo:       req.Chart.Repo,
+		versiondetail := common_proto.VersionDetail{
 			Version:    v.Version,
 			AppVersion: v.AppVersion,
 		}
-		chartDetails = append(chartDetails, &chartdetail)
+		versionDetails = append(versionDetails, &versiondetail)
 	}
-	rsp.Chartdetails = chartDetails
+	rsp.Versiondetails = versionDetails
 
-	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid, req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
+	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid,
+		req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create show version tarball request, %s \n", err.Error())
 		return errors.New("internal error: create show version tarball request")
@@ -739,32 +785,34 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context, req *appmgr.ChartDetail
 		log.Printf("cannot find value in chart tarball, %s \n", err.Error())
 	}
 
-	rsp.ShowReadme = tarf[req.Chart.Name+"/README.md"]
-	rsp.ShowValues = tarf[req.Chart.Name+"/values.yaml"]
+	rsp.ReadmeMd = tarf[req.Chart.Name+"/README.md"]
+	rsp.ValuesYaml = tarf[req.Chart.Name+"/values.yaml"]
 
 	return nil
 }
 
 // DownloadChart will return a specific chart tarball from the specific chartmuseum repo
-func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadChartRequest, rsp *appmgr.DownloadChartResponse) error {
+func (p *AppMgrHandler) DownloadChart(ctx context.Context,
+	req *appmgr.DownloadChartRequest, rsp *appmgr.DownloadChartResponse) error {
 
-	log.Println("Download chart tarball...")
+	log.Println("Download chart tarball...%+v", req)
 
 	uid := common_util.GetUserID(ctx)
 
-	if chartmuseumURL == "" {
+	if len(chartmuseumURL) == 0 {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 
-	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" {
+	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 {
 		log.Printf("invalid input: null chart detail provided, %+v \n", req)
 		return errors.New("invalid input: null chart detail provided")
 	}
 
-	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
+	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL,
+		uid, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
 	if err != nil {
-		log.Printf("cannot create show version tarball request, %s \n", err.Error())
-		return errors.New("internal error: create show version tarball request")
+		log.Printf("cannot create download tarball request, %s \n", err.Error())
+		return errors.New("internal error: create download tarball request")
 	}
 
 	tarballRes, err := http.DefaultClient.Do(tarballReq)
@@ -783,20 +831,25 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context, req *appmgr.DownloadC
 	return nil
 }
 
-func (p *AppMgrHandler) DeleteChart(ctx context.Context, req *appmgr.DeleteChartRequest, res *common_proto.Empty) error {
-	log.Println("Deleting charts...")
+// DeleteChart delete a specific chart version from the specific chartmuseum repo
+func (p *AppMgrHandler) DeleteChart(ctx context.Context,
+	req *appmgr.DeleteChartRequest, res *common_proto.Empty) error {
+
+	log.Println("Deleting charts...%+v", req)
 
 	uid := common_util.GetUserID(ctx)
-	if chartmuseumURL == "" {
+	if len(chartmuseumURL) == 0 {
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
-	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
+	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
+		req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode != 200 {
 		log.Printf("chart not exist, delete failed.\n")
 		return errors.New("chart not exist, delete failed")
 	}
 
-	delReq, err := http.NewRequest("DELETE", getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
+	delReq, err := http.NewRequest("DELETE", getChartURL(chartmuseumURL+"/api",
+		uid, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
 	if err != nil {
 		log.Printf("cannot create delete chart request, %s \n", err.Error())
 		return errors.New("internal error: cannot create delete chart request")
@@ -847,10 +900,19 @@ func extractFromTarfile(tarf map[string]string, tarball *tar.Reader) error {
 	return nil
 }
 
-func (p *AppMgrHandler) CreateNamespace(ctx context.Context, req *appmgr.CreateNamespaceRequest, rsp *appmgr.CreateNamespaceResponse) error {
+// CreateNamespace will create a namespace on cluster which is desinated by dcmgr
+func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
+	req *appmgr.CreateNamespaceRequest, rsp *appmgr.CreateNamespaceResponse) error {
+
 	uid := common_util.GetUserID(ctx)
 
 	log.Printf("app manager service CreateNamespace: %+v", req)
+
+	if req.Namespace == nil || req.Namespace.CpuLimit == 0 ||
+		req.Namespace.MemLimit == 0 || req.Namespace.StorageLimit == 0 {
+		log.Printf("invalid input: empty namespace properties not accepted \n")
+		return errors.New("invalid input: empty namespace properties not accepted")
+	}
 
 	req.Namespace.Id = "ns-" + uuid.New().String()
 
@@ -894,7 +956,10 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 	return namespaceReport
 }
 
-func (p *AppMgrHandler) NamespaceList(ctx context.Context, req *appmgr.NamespaceListRequest, rsp *appmgr.NamespaceListResponse) error {
+// NamespaceList will return a namespace list for certain user
+func (p *AppMgrHandler) NamespaceList(ctx context.Context,
+	req *common_proto.Empty, rsp *appmgr.NamespaceListResponse) error {
+
 	userId := common_util.GetUserID(ctx)
 	log.Println("app service into NamespaceList")
 
@@ -920,8 +985,18 @@ func (p *AppMgrHandler) NamespaceList(ctx context.Context, req *appmgr.Namespace
 	return nil
 }
 
-func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateNamespaceRequest, rsp *common_proto.Empty) error {
+// UpdateNamespace will update a namespace with cpu/mem/storage limit
+func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
+	req *appmgr.UpdateNamespaceRequest, rsp *common_proto.Empty) error {
+
+	log.Printf("app manager service UpdateNamespace: %+v", req)
 	userId := common_util.GetUserID(ctx)
+
+	if req.Namespace == nil || len(req.Namespace.Name) == 0 && (req.Namespace.CpuLimit == 0 ||
+		req.Namespace.MemLimit == 0 || req.Namespace.StorageLimit == 0) {
+		log.Printf("invalid input: empty namespace properties not accepted \n")
+		return errors.New("invalid input: empty namespace properties not accepted")
+	}
 
 	namespaceRecord, err := p.db.GetNamespace(req.Namespace.Id)
 	if err != nil {
@@ -940,10 +1015,16 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 	}
 
 	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
-	namespaceReport.Namespace.CpuLimit = req.Namespace.CpuLimit
-	namespaceReport.Namespace.MemLimit = req.Namespace.MemLimit
-	namespaceReport.Namespace.StorageLimit = req.Namespace.StorageLimit
-	namespaceReport.Namespace.Name = req.Namespace.Name
+
+	if req.Namespace.CpuLimit > 0 && req.Namespace.MemLimit > 0 && req.Namespace.StorageLimit > 0 {
+		namespaceReport.Namespace.CpuLimit = req.Namespace.CpuLimit
+		namespaceReport.Namespace.MemLimit = req.Namespace.MemLimit
+		namespaceReport.Namespace.StorageLimit = req.Namespace.StorageLimit
+	}
+
+	if req.Namespace.Name != "" {
+		namespaceReport.Namespace.Name = req.Namespace.Name
+	}
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_UPDATE,
@@ -962,9 +1043,12 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context, req *appmgr.UpdateN
 	return nil
 }
 
-func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteNamespaceRequest, rsp *common_proto.Empty) error {
+// DeleteNamespace will delete a namespace with no resource owned
+func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
+	req *appmgr.DeleteNamespaceRequest, rsp *common_proto.Empty) error {
+
 	userId := common_util.GetUserID(ctx)
-	log.Println("Debug into DeleteNamespace")
+	log.Println("Debug into DeleteNamespace %+v", req)
 
 	namespaceRecord, err := p.db.GetNamespace(req.Id)
 	if err != nil {
@@ -993,7 +1077,8 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context, req *appmgr.DeleteN
 		return err
 	}
 
-	if err := p.db.Update("namespace", req.Id, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELING}}); err != nil {
+	if err := p.db.Update("namespace", req.Id, bson.M{
+		"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELING}}); err != nil {
 		log.Println(err.Error())
 		return err
 	}

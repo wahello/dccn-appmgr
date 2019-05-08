@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 
 	//	"github.com/Ankr-network/dccn-common/protos"
 
@@ -11,9 +12,8 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	common "github.com/Ankr-network/dccn-common/protos/common"
+	//	apiCommon "github.com/Ankr-network/dccn-hub/app-dccn-api/examples/common"
 )
 
 var addr = "appmgr:50051"
@@ -42,12 +42,11 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	appFilter := appmgr.AppFilter{}
 
-	if res, err := appClient.AppList(tokenContext, &common.Empty{}); err != nil {
+	if res, err := appClient.AppCount(tokenContext, &appmgr.AppCountRequest{UserId: os.Args[1], ClusterId: os.Args[2]}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf("app list successfully : \n  %v ", res.AppReports)
+		log.Printf("app count userid %s cluster id %s  : %s\n  %v ", os.Args[1], os.Args[2], res.AppCount)
 	}
 
 }

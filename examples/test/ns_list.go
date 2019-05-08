@@ -10,8 +10,9 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	//	apiCommon "github.com/Ankr-network/dccn-hub/app-dccn-api/examples/common"
+	common "github.com/Ankr-network/dccn-common/protos/common"
 )
 
 var addr = "appmgr:50051"
@@ -41,7 +42,7 @@ func main() {
 	defer cancel()
 	//
 
-	if rsp, err := appClient.NamespaceList(tokenContext, &appmgr.NamespaceListRequest{}); err != nil {
+	if rsp, err := appClient.NamespaceList(tokenContext, &common.Empty{}); err != nil {
 		log.Fatal(err)
 	} else {
 		log.Println("namespace list successfully: \n %+v ", rsp.Namespaces)
