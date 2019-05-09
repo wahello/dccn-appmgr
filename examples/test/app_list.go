@@ -42,7 +42,6 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	appFilter := appmgr.AppFilter{}
 
 	if res, err := appClient.AppList(tokenContext, &common.Empty{}); err != nil {
 		log.Fatal(err)

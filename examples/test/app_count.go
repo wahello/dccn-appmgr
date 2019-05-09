@@ -43,7 +43,7 @@ func main() {
 	defer cancel()
 	//
 
-	if res, err := appClient.AppCount(tokenContext, &appmgr.AppCountRequest{UserId: os.Args[1], ClusterId: os.Args[2]}); err != nil {
+	if res, err := appClient.AppCount(tokenContext, &appmgr.AppCountRequest{Uid: os.Args[1], ClusterId: os.Args[2]}); err != nil {
 		log.Fatal(err)
 	} else {
 		log.Printf("app count userid %s cluster id %s  : %s\n  %v ", os.Args[1], os.Args[2], res.AppCount)

@@ -45,7 +45,7 @@ func main() {
 	if rsp, err := appClient.NamespaceList(tokenContext, &common.Empty{}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("namespace list successfully: \n %+v ", rsp.Namespaces)
+		log.Println("namespace list successfully: \n %+v ", rsp.NamespaceReports)
 	}
 
 }

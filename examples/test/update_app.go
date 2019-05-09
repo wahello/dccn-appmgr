@@ -45,19 +45,19 @@ func main() {
 	defer cancel()
 	//
 	appDeployment := common_proto.AppDeployment{}
-	appDeployment.Id = os.Args[1]
+	appDeployment.AppId = os.Args[1]
 	log.Printf("APP ID: %s", appDeployment.Id)
-	appDeployment.Name = "wordpress_test1"
+	appDeployment.AppName = "wordpress_test1"
 	appDeployment.ChartDetail = &common_proto.ChartDetail{
-		Repo:    "stable",
-		Name:    "wordpress",
-		Version: "5.7.1",
+		ChartRepo: "stable",
+		ChartName: "wordpress",
+		ChartVer:  "5.7.1",
 	}
 
 	if _, err := appClient.UpdateApp(tokenContext, &appmgr.UpdateAppRequest{AppDeployment: &appDeployment}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("update app successfully : appid   " + appDeployment.Id)
+		log.Println("update app successfully : appid   " + appDeployment.AppId)
 	}
 
 }

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
+
 	//	"github.com/Ankr-network/dccn-common/protos"
 
 	"log"
@@ -10,9 +12,7 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	//	apiCommon "github.com/Ankr-network/dccn-hub/app-dccn-api/examples/common"
 )
 
@@ -42,26 +42,18 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	app := common_proto.App{}
-	app.AppName = "wordpress_test"
-	app.ChartDetail = &common_proto.ChartDetail{
-		ChartRepo: "stable",
+	file, err := ioutil.ReadFile("wordpress-5.6.0.tgz")
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	if _, err := appClient.UploadChart(tokenContext, &appmgr.UploadChartRequest{
+		ChartFile: file,
 		ChartName: "wordpress",
 		ChartVer:  "5.6.0",
-	}
-	app.NamespaceData = &common_proto.App_Namespace{
-		Namespace: &common_proto.Namespace{
-			NsName:         "test_ns1",
-			NsCpuLimit:     300,
-			NsMemLimit:     500,
-			NsStorageLimit: 10,
-		},
-	}
-
-	if rsp, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app}); err != nil {
+		ChartRepo: "stable"}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("create app successfully : appid   " + rsp.AppId)
+		log.Println("create chart successfully    ")
 	}
 
 }

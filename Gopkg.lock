@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:cc4a74a6605e16309c99c37c898a326270d6b6cfa72a3e2b8aeb1fc1fec2909e"
+  digest = "1:a71fa2635fc383d8d25318b8a0bb2059880802d641fe4ef0ba9d0150bcd94c2f"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "7462ed67577ee16a3a3a555e9b705b23bb428dbb"
+  revision = "ac95836e426f27ced4687ea293c676aeff2710cf"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -443,7 +443,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "f4e77d36d62c17c2336347bb2670ddbd02d092b7"
+  revision = "a4d6f7feada510cc50e69a37b484cb0fdc6b7876"
 
 [[projects]]
   branch = "master"
@@ -451,7 +451,7 @@
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "2d0786266e9cd132da844109aa05016f11f3df28"
+  revision = "a5b02f93d862f065920dd6a40dddc66b60d0dec4"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -555,7 +555,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "a3da69d3723ca334b31f64e2c5ab6d7186452ed0"
+  revision = "7d8f8feb49c5e20ddbf3cf45f945122f8a4e3b05"
 
 [[projects]]
   digest = "1:2f5dfa28c0ca9eb38083d4b782d427647f30a9bf3429f8a644358184408fdf45"
@@ -582,6 +582,7 @@
     "github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro",
     "github.com/Ankr-network/dccn-common/protos/common",
     "github.com/Ankr-network/dccn-common/util",
+    "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/uuid",
     "github.com/micro/go-grpc",
     "github.com/micro/go-micro",

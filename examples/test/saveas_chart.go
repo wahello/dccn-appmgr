@@ -42,18 +42,21 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	file, err := ioutil.ReadFile("wordpress-5.6.0.tgz")
+	file, err := ioutil.ReadFile("values.yaml")
 	if err != nil {
 		log.Panic(err.Error())
 	}
-	if _, err := appClient.CreateChart(tokenContext, &appmgr.CreateChartRequest{
-		ChartFile: file,
-		ChartName: "wordpress",
-		ChartVer:  "5.6.0",
-		ChartRepo: "stable"}); err != nil {
+	if rsp, err := appClient.SaveAsChart(tokenContext, &appmgr.SaveAsChartRequest{
+		ValuesYaml: file,
+		ChartName:  "wordpress",
+		ChartVer:   "5.6.0",
+		ChartRepo:  "stable",
+		SaveName:   "wordpress_nodeport",
+		SaveVer:    "5.6.1",
+		SaveRepo:   "stable"}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("create chart successfully    ")
+		log.Println("save chart successfully    ")
 	}
 
 }

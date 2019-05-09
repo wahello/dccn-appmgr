@@ -45,13 +45,13 @@ func main() {
 
 	if rsp, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
 		Chart: &common_protos.Chart{
-			Name: "wordpress",
-			Repo: "stable"},
+			ChartName: "wordpress",
+			ChartRepo: "stable"},
 		ShowVersion: "5.6.0",
 	}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Printf(" chart list successfully  \n %+v \n\n %+v \n\n %+v ", rsp.Chartdetails, rsp.ShowReadme, rsp.ShowValues)
+		log.Printf(" chart list successfully  \n %+v \n\n %+v \n\n %+v ", rsp.ChartVersionDetails, rsp.ReadmeMd, rsp.ValuesYaml)
 	}
 
 }

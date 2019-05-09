@@ -6,7 +6,7 @@ import (
 
 	dbcommon "github.com/Ankr-network/dccn-common/db"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
-
+	"github.com/golang/protobuf/ptypes/timestamp"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -160,8 +160,8 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	appRecord.NamespaceID = appDeployment.Namespace.NsId
 	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
-	appRecord.Attributes.LastModifiedDate = uint64(now)
-	appRecord.Attributes.CreationDate = uint64(now)
+	appRecord.Attributes.LastModifiedDate = &timestamp.Timestamp{Seconds: now}
+	appRecord.Attributes.CreationDate = &timestamp.Timestamp{Seconds: now}
 	return p.collection(session, "app").Insert(appRecord)
 }
 
@@ -186,7 +186,7 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	fields["status"] = common_proto.AppStatus_APP_UPDATING
 
 	now := time.Now().Unix()
-	fields["lastmodifieddate"] = now
+	fields["lastmodifieddate"] = &timestamp.Timestamp{Seconds: now}
 	fields["chartupdating"] = appDeployment.ChartDetail
 
 	return p.collection(session, "app").Update(
@@ -224,14 +224,14 @@ type NamespaceRecord struct {
 	UID                  string
 	ClusterID            string //id of cluster
 	ClusterName          string //name of cluster
-	LastModifiedDate     uint64
-	CreationDate         uint64
-	CpuLimit             uint64
-	CpuLimitUpdating     uint64
-	MemLimit             uint64
-	MemLimitUpdating     uint64
-	StorageLimit         uint64
-	StorageLimitUpdating uint64
+	LastModifiedDate     *timestamp.Timestamp
+	CreationDate         *timestamp.Timestamp
+	CpuLimit             uint32
+	CpuLimitUpdating     uint32
+	MemLimit             uint32
+	MemLimitUpdating     uint32
+	StorageLimit         uint32
+	StorageLimitUpdating uint32
 	Status               common_proto.NamespaceStatus
 	Event                common_proto.NamespaceEvent
 }
@@ -271,8 +271,8 @@ func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) erro
 	namespacerecord.Status = common_proto.NamespaceStatus_NS_DISPATCHING
 	namespacerecord.Event = common_proto.NamespaceEvent_DISPATCH_NS
 	now := time.Now().Unix()
-	namespacerecord.LastModifiedDate = uint64(now)
-	namespacerecord.CreationDate = uint64(now)
+	namespacerecord.LastModifiedDate = &timestamp.Timestamp{Seconds: now}
+	namespacerecord.CreationDate = &timestamp.Timestamp{Seconds: now}
 	namespacerecord.CpuLimit = namespace.NsCpuLimit
 	namespacerecord.MemLimit = namespace.NsMemLimit
 	namespacerecord.StorageLimit = namespace.NsStorageLimit
