@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  branch = "feature/SWDEV-243-chartnamereivse"
+  branch = "develop"
   digest = "1:cc4a74a6605e16309c99c37c898a326270d6b6cfa72a3e2b8aeb1fc1fec2909e"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "7f5ebe411d1305c4d0651b370b509eb0b0be09a1"
+  revision = "7462ed67577ee16a3a3a555e9b705b23bb428dbb"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
