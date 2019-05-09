@@ -2,8 +2,8 @@
 
 
 [[projects]]
-  branch = "develop"
-  digest = "1:732e39b3f1fca72f4ea1b5f8051561cdf10fc8f07219378293f7a1b32663a12c"
+  branch = "feature/SWDEV-243-chartnamereivse"
+  digest = "1:cc4a74a6605e16309c99c37c898a326270d6b6cfa72a3e2b8aeb1fc1fec2909e"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "958b0481a781e11f5a8d7f384fe1824250685b3c"
+  revision = "7f5ebe411d1305c4d0651b370b509eb0b0be09a1"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -447,11 +447,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1292d43f91d32009a4afb7348ea3f84afd8be53c076d78c89f246781eb06e03f"
+  digest = "1:4fc43e824f7e546353de724c00507b1d9c0bab56344b10c2330a97f166a0fba7"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "ecd444e8653b66b20d764e53c22e3e615eea5fae"
+  revision = "2d0786266e9cd132da844109aa05016f11f3df28"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -480,11 +480,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c3076e7defee87de1236f1814beb588f40a75544c60121e6eb38b3b3721783e2"
+  digest = "1:fc5df4cb84cdf639ef702c176a50a9ee08ea3e68ebd67519c0f4f963c7d82978"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "54afdca5d873f7b529e2ce3def1a99df16feda90"
+  revision = "b515fa19cec88c32f305a962f34ae60068947aea"
 
 [[projects]]
   digest = "1:707c3a5d10ed430ea767d73df122d9eb3dfb6312bbacc9f2e39204390686d1d0"
@@ -555,7 +555,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "a0a96b9294955e93bcd120596555b541d9dfa4c6"
+  revision = "a3da69d3723ca334b31f64e2c5ab6d7186452ed0"
 
 [[projects]]
   digest = "1:2f5dfa28c0ca9eb38083d4b782d427647f30a9bf3429f8a644358184408fdf45"

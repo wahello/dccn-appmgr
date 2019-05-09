@@ -31,7 +31,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 
 		appReport := stream.GetAppReport()
 
-		appRecord, err := p.db.GetApp(appReport.AppDeployment.Id)
+		appRecord, err := p.db.GetApp(appReport.AppDeployment.AppId)
 		if err != nil {
 			log.Println(err.Error())
 			return err
@@ -76,13 +76,13 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		}
 
 		collection = "app"
-		id = appReport.AppDeployment.Id
+		id = appReport.AppDeployment.AppId
 
 	case *common_proto.DCStream_NsReport:
 
 		nsReport := stream.GetNsReport()
 
-		nsRecord, err := p.db.GetNamespace(nsReport.Namespace.Id)
+		nsRecord, err := p.db.GetNamespace(nsReport.Namespace.NsId)
 		if err != nil {
 			log.Println(err.Error())
 			return err
@@ -128,7 +128,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 		}
 
 		collection = "namespace"
-		id = nsReport.Namespace.Id
+		id = nsReport.Namespace.NsId
 
 	default:
 		log.Printf("OpPayload has unexpected type %T", x)

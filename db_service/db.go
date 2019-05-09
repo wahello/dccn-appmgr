@@ -152,12 +152,12 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	defer session.Close()
 
 	appRecord := AppRecord{}
-	appRecord.ID = appDeployment.Id
+	appRecord.ID = appDeployment.AppId
 	appRecord.UID = uid
-	appRecord.Name = appDeployment.Name
+	appRecord.Name = appDeployment.AppName
 	appRecord.Status = common_proto.AppStatus_APP_DISPATCHING
 	appRecord.Event = common_proto.AppEvent_DISPATCH_APP
-	appRecord.NamespaceID = appDeployment.Namespace.Id
+	appRecord.NamespaceID = appDeployment.Namespace.NsId
 	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
 	appRecord.Attributes.LastModifiedDate = uint64(now)
@@ -178,8 +178,8 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	defer session.Close()
 
 	fields := bson.M{}
-	if len(appDeployment.Name) > 0 {
-		fields["name"] = appDeployment.Name
+	if len(appDeployment.AppName) > 0 {
+		fields["name"] = appDeployment.AppName
 	}
 
 	fields["event"] = common_proto.AppEvent_UPDATE_APP
@@ -190,7 +190,7 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	fields["chartupdating"] = appDeployment.ChartDetail
 
 	return p.collection(session, "app").Update(
-		bson.M{"id": appDeployment.Id}, bson.M{"$set": fields})
+		bson.M{"id": appDeployment.AppId}, bson.M{"$set": fields})
 
 }
 
@@ -265,17 +265,17 @@ func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) erro
 	defer session.Close()
 
 	namespacerecord := NamespaceRecord{}
-	namespacerecord.ID = namespace.Id
-	namespacerecord.Name = namespace.Name
+	namespacerecord.ID = namespace.NsId
+	namespacerecord.Name = namespace.NsName
 	namespacerecord.UID = uid
 	namespacerecord.Status = common_proto.NamespaceStatus_NS_DISPATCHING
 	namespacerecord.Event = common_proto.NamespaceEvent_DISPATCH_NS
 	now := time.Now().Unix()
 	namespacerecord.LastModifiedDate = uint64(now)
 	namespacerecord.CreationDate = uint64(now)
-	namespacerecord.CpuLimit = namespace.CpuLimit
-	namespacerecord.MemLimit = namespace.MemLimit
-	namespacerecord.StorageLimit = namespace.StorageLimit
+	namespacerecord.CpuLimit = namespace.NsCpuLimit
+	namespacerecord.MemLimit = namespace.NsMemLimit
+	namespacerecord.StorageLimit = namespace.NsStorageLimit
 	return p.collection(session, "namespace").Insert(namespacerecord)
 }
 
@@ -285,17 +285,17 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 
 	fields := bson.M{}
 
-	if len(namespace.Name) > 0 {
-		fields["name"] = namespace.Name
+	if len(namespace.NsName) > 0 {
+		fields["name"] = namespace.NsName
 	}
 
-	if namespace.CpuLimit > 0 && namespace.MemLimit > 0 && namespace.StorageLimit > 0 {
-		fields["cpulimitupdating"] = namespace.CpuLimit
-		fields["memlimitupdating"] = namespace.MemLimit
-		fields["storagelimitupdating"] = namespace.StorageLimit
+	if namespace.NsCpuLimit > 0 && namespace.NsMemLimit > 0 && namespace.NsStorageLimit > 0 {
+		fields["cpulimitupdating"] = namespace.NsCpuLimit
+		fields["memlimitupdating"] = namespace.NsMemLimit
+		fields["storagelimitupdating"] = namespace.NsStorageLimit
 	}
 
-	return p.collection(session, "namespace").Update(bson.M{"id": namespace.Id},
+	return p.collection(session, "namespace").Update(bson.M{"id": namespace.NsId},
 		bson.M{"$set": fields})
 
 }

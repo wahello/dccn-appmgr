@@ -55,8 +55,8 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	}
 
 	appDeployment := &common_proto.AppDeployment{}
-	appDeployment.Id = "app-" + uuid.New().String()
-	appDeployment.Name = req.App.Name
+	appDeployment.AppId = "app-" + uuid.New().String()
+	appDeployment.AppName = req.App.AppName
 
 	if req.App.NamespaceData == nil {
 		log.Printf("invalid input: null namespace provided, %+v \n", req.App.NamespaceData)
@@ -65,9 +65,9 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 	switch req.App.NamespaceData.(type) {
 
-	case *common_proto.App_NamespaceId:
+	case *common_proto.App_NsId:
 
-		namespaceRecord, err := p.db.GetNamespace(req.App.GetNamespaceId())
+		namespaceRecord, err := p.db.GetNamespace(req.App.GetNsId())
 		if err != nil {
 			log.Printf("get namespace failed, %s", err.Error())
 			return errors.New("internal error: get namespace failed")
@@ -78,20 +78,20 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		}
 
 		appDeployment.Namespace = &common_proto.Namespace{
-			Id:               namespaceRecord.ID,
-			Name:             namespaceRecord.Name,
+			NsId:             namespaceRecord.ID,
+			NsName:           namespaceRecord.Name,
 			ClusterId:        namespaceRecord.ClusterID,
 			ClusterName:      namespaceRecord.ClusterName,
 			CreationDate:     namespaceRecord.CreationDate,
 			LastModifiedDate: namespaceRecord.LastModifiedDate,
-			CpuLimit:         namespaceRecord.CpuLimit,
-			MemLimit:         namespaceRecord.MemLimit,
-			StorageLimit:     namespaceRecord.StorageLimit,
+			NsCpuLimit:       namespaceRecord.CpuLimit,
+			NsMemLimit:       namespaceRecord.MemLimit,
+			NsStorageLimit:   namespaceRecord.StorageLimit,
 		}
 
 	case *common_proto.App_Namespace:
 		appDeployment.Namespace = req.App.GetNamespace()
-		appDeployment.Namespace.Id = "ns-" + uuid.New().String()
+		appDeployment.Namespace.NsId = "ns-" + uuid.New().String()
 		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
 			log.Println(err.Error())
 			return err
@@ -100,7 +100,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 	appDeployment.ChartDetail = req.App.ChartDetail
 	appDeployment.Uid = userID
-	rsp.AppId = appDeployment.Id
+	rsp.AppId = appDeployment.AppId
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_CREATE,
@@ -162,8 +162,8 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 
 func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppReport {
 	message := common_proto.AppDeployment{}
-	message.Id = app.ID
-	message.Name = app.Name
+	message.AppId = app.ID
+	message.AppName = app.Name
 	message.Attributes = &app.Attributes
 	message.Uid = app.UID
 	message.ChartDetail = &app.ChartDetail
@@ -214,7 +214,7 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_DETAIL,
-		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: &common_proto.AppDeployment{Id: req.AppId}},
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: &common_proto.AppDeployment{AppId: req.AppId}},
 	}
 
 	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
@@ -262,17 +262,17 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 	userId := common_util.GetUserID(ctx)
 
 	if req.AppDeployment == nil || (req.AppDeployment.ChartDetail == nil ||
-		len(req.AppDeployment.ChartDetail.Version) == 0) && len(req.AppDeployment.Name) == 0 {
+		len(req.AppDeployment.ChartDetail.ChartVer) == 0) && len(req.AppDeployment.AppName) == 0 {
 		log.Printf("invalid input: no valid update app parameters, %+v \n", req.AppDeployment)
 		return errors.New("invalid input: no valid update app parameters")
 	}
 
-	if err := checkId(userId, req.AppDeployment.Id); err != nil {
+	if err := checkId(userId, req.AppDeployment.AppId); err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	appReport, err := p.checkOwner(userId, req.AppDeployment.Id)
+	appReport, err := p.checkOwner(userId, req.AppDeployment.AppId)
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -286,13 +286,13 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 
 	appDeployment := appReport.AppDeployment
 
-	if len(req.AppDeployment.Name) > 0 {
-		appDeployment.Name = req.AppDeployment.Name
+	if len(req.AppDeployment.AppName) > 0 {
+		appDeployment.AppName = req.AppDeployment.AppName
 	}
 
 	if req.AppDeployment.ChartDetail != nil &&
-		req.AppDeployment.ChartDetail.Version != appDeployment.ChartDetail.Version {
-		appDeployment.ChartDetail.Version = req.AppDeployment.ChartDetail.Version
+		req.AppDeployment.ChartDetail.ChartVer != appDeployment.ChartDetail.ChartVer {
+		appDeployment.ChartDetail.ChartVer = req.AppDeployment.ChartDetail.ChartVer
 	}
 
 	event := common_proto.DCStream{
@@ -316,79 +316,40 @@ func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty
 	log.Printf("AppOverview in app manager service\n")
 
 	userId := common_util.GetUserID(ctx)
+
 	apps, err := p.db.GetAllApp(userId)
-	failed := 0
-
-	for i := 0; i < len(apps); i++ {
-		t := apps[i]
-		if t.Status == common_proto.AppStatus_APP_FAILED || t.Status == common_proto.AppStatus_APP_UPDATE_FAILED {
-			failed++
-		}
+	if err != nil {
+		log.Println(err.Error())
+		return err
 	}
 
-	rsp.ClusterCount = 0
-	rsp.EnvironmentCount = 0
-	rsp.RegionCount = 0
-	rsp.TotalAppCount = 1
-	rsp.HealthAppCount = 1
-
-	if err == nil && len(apps) > 0 {
-		rsp.ClusterCount = int32(len(apps))
-		rsp.EnvironmentCount = int32(len(apps))
-		rsp.RegionCount = 3
-		rsp.TotalAppCount = int32(len(apps))
-		rsp.HealthAppCount = int32(len(apps) - failed)
-
+	nss, err := p.db.GetAllNamespace(userId)
+	if err != nil {
+		log.Println(err.Error())
+		return err
 	}
+
+	clusters := map[string]bool{}
+	rsp.CpuTotal = 0
+	rsp.MemTotal = 0
+	rsp.StorageTotal = 0
+
+	for i := 0; i < len(nss); i++ {
+		clusters[nss[i].ClusterID] = true
+		rsp.CpuTotal += nss[i].CpuLimit
+		rsp.MemTotal += nss[i].MemLimit
+		rsp.StorageTotal += nss[i].StorageLimit
+	}
+
+	rsp.CpuUsage = rsp.CpuTotal / 4
+	rsp.MemUsage = rsp.MemTotal / 3
+	rsp.StorageUsage = rsp.StorageTotal / 2
+	rsp.ClusterCount = uint64(len(clusters))
+	rsp.NamespaceCount = uint64(len(nss))
+	rsp.NetworkCount = uint64(len(clusters))
+	rsp.TotalAppCount = uint64(len(apps))
 
 	return nil
-}
-
-func (p *AppMgrHandler) AppLeaderBoard(ctx context.Context, req *common_proto.Empty, rsp *appmgr.AppLeaderBoardResponse) error {
-	log.Printf("AppleaderBoard in app manager service\n")
-
-	list := make([]*appmgr.AppLeaderBoardDetail, 0)
-	{
-		detail := appmgr.AppLeaderBoardDetail{}
-		detail.Name = "app_1"
-		detail.Number = 99.34
-		list = append(list, &detail)
-	}
-
-	{
-		detail := appmgr.AppLeaderBoardDetail{}
-		detail.Name = "app_2"
-		detail.Number = 98.53
-		list = append(list, &detail)
-	}
-
-	{
-		detail := appmgr.AppLeaderBoardDetail{}
-		detail.Name = "app_3"
-		detail.Number = 97.98
-		list = append(list, &detail)
-	}
-
-	userId := common_util.GetUserID(ctx)
-	apps, err := p.db.GetAllApp(userId)
-	if err == nil && len(apps) > 0 {
-		offset := len(apps)
-
-		for i := 0; i < len(list); i++ {
-			if offset == 0 {
-				break
-			}
-			list[i].Name = apps[offset-1].Name
-			offset--
-		}
-	}
-
-	rsp.List = list
-
-	log.Printf("AppleaderBoard  <<<<<>>>>>> %+v", rsp.List)
-
-	return nil
-
 }
 
 func (p *AppMgrHandler) PurgeApp(ctx context.Context, req *appmgr.AppID, rsp *common_proto.Empty) error {
@@ -682,12 +643,12 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 
 	for _, v := range data {
 		chart := common_proto.Chart{
-			Name:             v[0].Name,
-			Repo:             req.ChartRepo,
-			Description:      v[0].Description,
-			IconUrl:          v[0].Icon,
-			LatestVersion:    v[0].Version,
-			LatestAppVersion: v[0].AppVersion,
+			ChartName:             v[0].Name,
+			ChartRepo:             req.ChartRepo,
+			ChartDescription:      v[0].Description,
+			ChartIconUrl:          v[0].Icon,
+			ChartLatestVersion:    v[0].Version,
+			ChartLatestAppVersion: v[0].AppVersion,
 		}
 		charts = append(charts, &chart)
 	}
@@ -709,13 +670,13 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
 	}
 
-	if req.Chart == nil || len(req.Chart.Name) == 0 || len(req.Chart.Repo) == 0 {
+	if req.Chart == nil || len(req.Chart.ChartName) == 0 || len(req.Chart.ChartRepo) == 0 {
 		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
 		return errors.New("invalid input: null chart provided")
 	}
 
 	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api",
-		uid, req.Chart.Repo) + "/" + req.Chart.Name)
+		uid, req.Chart.ChartRepo) + "/" + req.Chart.ChartName)
 	if err != nil {
 		log.Printf("cannot get chart details, %s \n", err.Error())
 		return errors.New("internal error: cannot get chart details")
@@ -735,21 +696,21 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 		return errors.New("internal error: cannot unmarshal chart details")
 	}
 
-	rsp.Name = req.Chart.Name
-	rsp.Repo = req.Chart.Repo
+	rsp.ChartName = req.Chart.ChartName
+	rsp.ChartRepo = req.Chart.ChartRepo
 
-	versionDetails := make([]*common_proto.VersionDetail, 0)
+	versionDetails := make([]*common_proto.ChartVersionDetail, 0)
 	for _, v := range data {
-		versiondetail := common_proto.VersionDetail{
-			Version:    v.Version,
-			AppVersion: v.AppVersion,
+		versiondetail := common_proto.ChartVersionDetail{
+			ChartVer:    v.Version,
+			ChartAppVer: v.AppVersion,
 		}
 		versionDetails = append(versionDetails, &versiondetail)
 	}
-	rsp.Versiondetails = versionDetails
+	rsp.ChartVersionDetails = versionDetails
 
 	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid,
-		req.Chart.Repo)+"/"+req.Chart.Name+"-"+req.ShowVersion+".tgz", nil)
+		req.Chart.ChartRepo)+"/"+req.Chart.ChartName+"-"+req.ShowVersion+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create show version tarball request, %s \n", err.Error())
 		return errors.New("internal error: create show version tarball request")
@@ -771,22 +732,22 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 
 	tarball := tar.NewReader(gzf)
 	tarf := make(map[string]string)
-	tarf[req.Chart.Name+"/README.md"] = ""
-	tarf[req.Chart.Name+"/values.yaml"] = ""
+	tarf[req.Chart.ChartName+"/README.md"] = ""
+	tarf[req.Chart.ChartName+"/values.yaml"] = ""
 
 	if err = extractFromTarfile(tarf, tarball); err != nil {
 		log.Printf("cannot find readme/value in chart tarball, %s \n", err.Error())
 		return errors.New("internal error: cannot find readme in chart tarball")
 	}
-	if tarf[req.Chart.Name+"/README.md"] == "" {
+	if tarf[req.Chart.ChartName+"/README.md"] == "" {
 		log.Printf("cannot find readme in chart tarball, %s \n", err.Error())
 	}
-	if tarf[req.Chart.Name+"/values.yaml"] == "" {
+	if tarf[req.Chart.ChartName+"/values.yaml"] == "" {
 		log.Printf("cannot find value in chart tarball, %s \n", err.Error())
 	}
 
-	rsp.ReadmeMd = tarf[req.Chart.Name+"/README.md"]
-	rsp.ValuesYaml = tarf[req.Chart.Name+"/values.yaml"]
+	rsp.ReadmeMd = tarf[req.Chart.ChartName+"/README.md"]
+	rsp.ValuesYaml = tarf[req.Chart.ChartName+"/values.yaml"]
 
 	return nil
 }
@@ -908,13 +869,13 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 
 	log.Printf("app manager service CreateNamespace: %+v", req)
 
-	if req.Namespace == nil || req.Namespace.CpuLimit == 0 ||
-		req.Namespace.MemLimit == 0 || req.Namespace.StorageLimit == 0 {
+	if req.Namespace == nil || req.Namespace.NsCpuLimit == 0 ||
+		req.Namespace.NsMemLimit == 0 || req.Namespace.NsStorageLimit == 0 {
 		log.Printf("invalid input: empty namespace properties not accepted \n")
 		return errors.New("invalid input: empty namespace properties not accepted")
 	}
 
-	req.Namespace.Id = "ns-" + uuid.New().String()
+	req.Namespace.NsId = "ns-" + uuid.New().String()
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_CREATE,
@@ -933,21 +894,21 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 		return err
 	}
 
-	rsp.Id = req.Namespace.Id
+	rsp.NsId = req.Namespace.NsId
 
 	return nil
 }
 
 func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.NamespaceReport {
 	message := common_proto.Namespace{}
-	message.Id = namespace.ID
-	message.Name = namespace.Name
+	message.NsId = namespace.ID
+	message.NsName = namespace.Name
 	message.ClusterId = namespace.ClusterID
 	message.ClusterName = namespace.ClusterName
 	message.CreationDate = namespace.CreationDate
-	message.CpuLimit = namespace.CpuLimit
-	message.MemLimit = namespace.MemLimit
-	message.StorageLimit = namespace.StorageLimit
+	message.NsCpuLimit = namespace.CpuLimit
+	message.NsMemLimit = namespace.MemLimit
+	message.NsStorageLimit = namespace.StorageLimit
 	namespaceReport := common_proto.NamespaceReport{
 		Namespace: &message,
 		NsEvent:   namespace.Event,
@@ -992,13 +953,13 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 	log.Printf("app manager service UpdateNamespace: %+v", req)
 	userId := common_util.GetUserID(ctx)
 
-	if req.Namespace == nil || len(req.Namespace.Name) == 0 && (req.Namespace.CpuLimit == 0 ||
-		req.Namespace.MemLimit == 0 || req.Namespace.StorageLimit == 0) {
+	if req.Namespace == nil || len(req.Namespace.NsName) == 0 && (req.Namespace.NsCpuLimit == 0 ||
+		req.Namespace.NsMemLimit == 0 || req.Namespace.NsStorageLimit == 0) {
 		log.Printf("invalid input: empty namespace properties not accepted \n")
 		return errors.New("invalid input: empty namespace properties not accepted")
 	}
 
-	namespaceRecord, err := p.db.GetNamespace(req.Namespace.Id)
+	namespaceRecord, err := p.db.GetNamespace(req.Namespace.NsId)
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -1016,14 +977,14 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 
 	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
 
-	if req.Namespace.CpuLimit > 0 && req.Namespace.MemLimit > 0 && req.Namespace.StorageLimit > 0 {
-		namespaceReport.Namespace.CpuLimit = req.Namespace.CpuLimit
-		namespaceReport.Namespace.MemLimit = req.Namespace.MemLimit
-		namespaceReport.Namespace.StorageLimit = req.Namespace.StorageLimit
+	if req.Namespace.NsCpuLimit > 0 && req.Namespace.NsMemLimit > 0 && req.Namespace.NsStorageLimit > 0 {
+		namespaceReport.Namespace.NsCpuLimit = req.Namespace.NsCpuLimit
+		namespaceReport.Namespace.NsMemLimit = req.Namespace.NsMemLimit
+		namespaceReport.Namespace.NsStorageLimit = req.Namespace.NsStorageLimit
 	}
 
-	if req.Namespace.Name != "" {
-		namespaceReport.Namespace.Name = req.Namespace.Name
+	if req.Namespace.NsName != "" {
+		namespaceReport.Namespace.NsName = req.Namespace.NsName
 	}
 
 	event := common_proto.DCStream{
@@ -1050,7 +1011,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 	userId := common_util.GetUserID(ctx)
 	log.Println("Debug into DeleteNamespace %+v", req)
 
-	namespaceRecord, err := p.db.GetNamespace(req.Id)
+	namespaceRecord, err := p.db.GetNamespace(req.NsId)
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -1077,7 +1038,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 		return err
 	}
 
-	if err := p.db.Update("namespace", req.Id, bson.M{
+	if err := p.db.Update("namespace", req.NsId, bson.M{
 		"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELING}}); err != nil {
 		log.Println(err.Error())
 		return err
