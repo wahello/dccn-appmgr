@@ -43,7 +43,7 @@ func main() {
 	defer cancel()
 	//
 
-	if _, err := appClient.DeleteNamespace(tokenContext, &appmgr.DeleteNamespaceRequest{Id: os.Args[1]}); err != nil {
+	if _, err := appClient.DeleteNamespace(tokenContext, &appmgr.DeleteNamespaceRequest{NsId: os.Args[1]}); err != nil {
 		log.Fatal(err)
 	} else {
 		log.Println("delete ns successfully ")

@@ -43,10 +43,10 @@ func main() {
 	defer cancel()
 	//
 	namespace := &common_proto.Namespace{
-		Name:         "test_ns2",
-		CpuLimit:     300,
-		MemLimit:     500,
-		StorageLimit: 10,
+		NsName:         "test_ns2",
+		NsCpuLimit:     300,
+		NsMemLimit:     500,
+		NsStorageLimit: 10,
 	}
 
 	if rsp, err := appClient.CreateNamespace(tokenContext, &appmgr.CreateNamespaceRequest{Namespace: namespace}); err != nil {

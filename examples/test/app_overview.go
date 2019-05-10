@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 
 	//	"github.com/Ankr-network/dccn-common/protos"
 
@@ -12,8 +11,9 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	//	apiCommon "github.com/Ankr-network/dccn-hub/app-dccn-api/examples/common"
+	common "github.com/Ankr-network/dccn-common/protos/common"
 )
 
 var addr = "appmgr:50051"
@@ -42,21 +42,11 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	file, err := ioutil.ReadFile("values.yaml")
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	if rsp, err := appClient.SaveChart(tokenContext, &appmgr.SaveChartRequest{
-		ValueFile: file,
-		ChartName: "wordpress",
-		ChartVer:  "5.6.0",
-		ChartRepo: "stable",
-		SaveName:  "wordpress_nodeport",
-		SaveVer:   "5.6.1",
-		SaveRepo:  "stable"}); err != nil {
+
+	if res, err := appClient.AppOverview(tokenContext, &common.Empty{}); err != nil {
 		log.Fatal(err)
 	} else {
-		log.Println("save chart successfully    ")
+		log.Printf("app overview : \n%+v \n ", res)
 	}
 
 }

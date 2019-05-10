@@ -99,6 +99,29 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	}
 
 	appDeployment.ChartDetail = req.App.ChartDetail
+	appChart, err := http.Get(getChartURL(chartmuseumURL, userID,
+		req.App.ChartDetail.ChartRepo) + "/" + req.App.ChartDetail.ChartName + "-" + req.App.ChartDetail.ChartVer + ".tgz")
+	if err != nil {
+		log.Printf("cannot get app chart %s from chartmuseum\n", req.App.ChartDetail.ChartName, err.Error())
+		return errors.New("internal error: cannot get app chart from chartmuseum")
+	}
+	if appChart.StatusCode != 200 {
+		log.Printf("invalid input: app chart not exist \n")
+		return errors.New("invalid input: app chart not exist")
+	}
+
+	defer appChart.Body.Close()
+
+	loadedChart, err := chartutil.LoadArchive(appChart.Body)
+	if err != nil {
+		log.Printf("cannot load chart from the http get response from chartmuseum , %s \n",
+			req.App.ChartDetail.ChartName, err.Error())
+		return errors.New("internal error: cannot load chart from http get response from chartmuseum")
+	}
+
+	appDeployment.ChartDetail.ChartAppVer = loadedChart.Metadata.AppVersion
+	appDeployment.ChartDetail.ChartIconUrl = loadedChart.Metadata.Icon
+
 	appDeployment.Uid = userID
 	rsp.AppId = appDeployment.AppId
 
@@ -230,6 +253,11 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 		return err
 	}
 
+	if appRecord.Hidden == true {
+		log.Printf(" app id %s already purged \n", req.AppId)
+		return errors.New("invalid input: app already purged")
+	}
+
 	appMessage := convertToAppMessage(appRecord, p.db)
 	log.Printf("appMessage %+v \n", appMessage)
 	rsp.AppReport = &appMessage
@@ -241,17 +269,17 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 	req *appmgr.AppCountRequest, rsp *appmgr.AppCountResponse) error {
 	log.Println("debug into AppCount %+v", req)
 
-	if len(req.UserId) == 0 || len(req.ClusterId) == 0 {
+	if len(req.Uid) == 0 || len(req.ClusterId) == 0 {
 		rsp.AppCount = 0
 	}
 
-	appRecord, err := p.db.GetAppCount(req.UserId, req.ClusterId)
+	appRecord, err := p.db.GetAppCount(req.Uid, req.ClusterId)
 	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	rsp.AppCount = uint64(len(appRecord))
+	rsp.AppCount = uint32(len(appRecord))
 
 	return nil
 }
@@ -259,7 +287,7 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 	req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
 
-	userId := common_util.GetUserID(ctx)
+	uid := common_util.GetUserID(ctx)
 
 	if req.AppDeployment == nil || (req.AppDeployment.ChartDetail == nil ||
 		len(req.AppDeployment.ChartDetail.ChartVer) == 0) && len(req.AppDeployment.AppName) == 0 {
@@ -267,12 +295,12 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 		return errors.New("invalid input: no valid update app parameters")
 	}
 
-	if err := checkId(userId, req.AppDeployment.AppId); err != nil {
+	if err := checkId(uid, req.AppDeployment.AppId); err != nil {
 		log.Println(err.Error())
 		return err
 	}
 
-	appReport, err := p.checkOwner(userId, req.AppDeployment.AppId)
+	appReport, err := p.checkOwner(uid, req.AppDeployment.AppId)
 	if err != nil {
 		log.Println(err.Error())
 		return err
@@ -292,6 +320,17 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 
 	if req.AppDeployment.ChartDetail != nil &&
 		req.AppDeployment.ChartDetail.ChartVer != appDeployment.ChartDetail.ChartVer {
+		appChart, err := http.Get(getChartURL(chartmuseumURL, uid,
+			req.AppDeployment.ChartDetail.ChartRepo) + "/" + req.AppDeployment.ChartDetail.ChartName + "-" + req.AppDeployment.ChartDetail.ChartVer + ".tgz")
+		if err != nil {
+			log.Printf("cannot get app chart %s from chartmuseum\n", req.AppDeployment.ChartDetail.ChartName, err.Error())
+			return errors.New("internal error: cannot get app chart from chartmuseum")
+		}
+		if appChart.StatusCode != 200 {
+			log.Printf("invalid input: app chart not exist \n")
+			return errors.New("invalid input: app chart not exist")
+		}
+
 		appDeployment.ChartDetail.ChartVer = req.AppDeployment.ChartDetail.ChartVer
 	}
 
@@ -336,18 +375,18 @@ func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty
 
 	for i := 0; i < len(nss); i++ {
 		clusters[nss[i].ClusterID] = true
-		rsp.CpuTotal += nss[i].CpuLimit
-		rsp.MemTotal += nss[i].MemLimit
-		rsp.StorageTotal += nss[i].StorageLimit
+		rsp.CpuTotal += float32(nss[i].CpuLimit)
+		rsp.MemTotal += float32(nss[i].MemLimit)
+		rsp.StorageTotal += float32(nss[i].StorageLimit)
 	}
 
 	rsp.CpuUsage = rsp.CpuTotal / 4
 	rsp.MemUsage = rsp.MemTotal / 3
 	rsp.StorageUsage = rsp.StorageTotal / 2
-	rsp.ClusterCount = uint64(len(clusters))
-	rsp.NamespaceCount = uint64(len(nss))
-	rsp.NetworkCount = uint64(len(clusters))
-	rsp.TotalAppCount = uint64(len(apps))
+	rsp.ClusterCount = uint32(len(clusters))
+	rsp.NamespaceCount = uint32(len(nss))
+	rsp.NetworkCount = uint32(len(clusters))
+	rsp.TotalAppCount = uint32(len(apps))
 
 	return nil
 }
@@ -443,9 +482,6 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 
 	uid := common_util.GetUserID(ctx)
 
-	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
-	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || len(req.ChartFile) == 0 {
 		log.Printf("invalid input, create failed.\n")
 		return errors.New("invalid input, create failed")
@@ -515,9 +551,6 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 
 	uid := common_util.GetUserID(ctx)
 
-	if chartmuseumURL == "" {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
-	}
 	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" ||
 		req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
 		log.Printf("invalid input: empty chart properties not accepted \n")
@@ -613,9 +646,6 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 
 	uid := common_util.GetUserID(ctx)
 
-	if len(chartmuseumURL) == 0 {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
-	}
 	if len(req.ChartRepo) == 0 {
 		req.ChartRepo = "stable"
 	}
@@ -665,10 +695,6 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 	log.Println("Checking for chart details... %+v", req)
 
 	uid := common_util.GetUserID(ctx)
-
-	if len(chartmuseumURL) == 0 {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
-	}
 
 	if req.Chart == nil || len(req.Chart.ChartName) == 0 || len(req.Chart.ChartRepo) == 0 {
 		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
@@ -760,10 +786,6 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 
 	uid := common_util.GetUserID(ctx)
 
-	if len(chartmuseumURL) == 0 {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
-	}
-
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 {
 		log.Printf("invalid input: null chart detail provided, %+v \n", req)
 		return errors.New("invalid input: null chart detail provided")
@@ -799,9 +821,7 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context,
 	log.Println("Deleting charts...%+v", req)
 
 	uid := common_util.GetUserID(ctx)
-	if len(chartmuseumURL) == 0 {
-		chartmuseumURL = "http://chart-dev.dccn.ankr.com:8080"
-	}
+
 	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
 		req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode != 200 {
@@ -906,6 +926,7 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 	message.ClusterId = namespace.ClusterID
 	message.ClusterName = namespace.ClusterName
 	message.CreationDate = namespace.CreationDate
+	message.LastModifiedDate = namespace.LastModifiedDate
 	message.NsCpuLimit = namespace.CpuLimit
 	message.NsMemLimit = namespace.MemLimit
 	message.NsStorageLimit = namespace.StorageLimit
