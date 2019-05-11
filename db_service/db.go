@@ -293,6 +293,7 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 		fields["cpulimitupdating"] = namespace.NsCpuLimit
 		fields["memlimitupdating"] = namespace.NsMemLimit
 		fields["storagelimitupdating"] = namespace.NsStorageLimit
+		fields["status"] = common_proto.NamespaceStatus_NS_UPDATING
 	}
 
 	return p.collection(session, "namespace").Update(bson.M{"id": namespace.NsId},

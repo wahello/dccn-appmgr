@@ -46,7 +46,6 @@ func main() {
 	//
 	namespace := &common_proto.Namespace{
 		NsId:           os.Args[1],
-		NsName:         "test_ns2",
 		NsCpuLimit:     400,
 		NsMemLimit:     600,
 		NsStorageLimit: 20,

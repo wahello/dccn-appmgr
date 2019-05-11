@@ -20,6 +20,7 @@ import (
 	common_util "github.com/Ankr-network/dccn-common/util"
 	"github.com/google/uuid"
 	micro "github.com/micro/go-micro"
+	"google.golang.org/grpc/status"
 	"gopkg.in/mgo.v2/bson"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"
@@ -50,13 +51,18 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	log.Println("app manager service CreateApp %+v", req)
 
 	if req.App == nil {
-		log.Printf("invalid input: null app provided, %+v \n", req.App)
+		log.Printf("invalid input: null app provided, %+v \n", req)
 		return errors.New("invalid input: null app provided")
 	}
 
 	appDeployment := &common_proto.AppDeployment{}
 	appDeployment.AppId = "app-" + uuid.New().String()
+
 	appDeployment.AppName = req.App.AppName
+	if len(appDeployment.AppName) == 0 {
+		log.Printf("invalid input: null app name provided, %+v \n", req.App.AppName)
+		return errors.New("invalid input: null app name provided")
+	}
 
 	if req.App.NamespaceData == nil {
 		log.Printf("invalid input: null namespace provided, %+v \n", req.App.NamespaceData)
@@ -91,6 +97,11 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 	case *common_proto.App_Namespace:
 		appDeployment.Namespace = req.App.GetNamespace()
+		if appDeployment.Namespace == nil || appDeployment.Namespace.NsCpuLimit == 0 ||
+			appDeployment.Namespace.NsMemLimit == 0 || appDeployment.Namespace.NsStorageLimit == 0 {
+			log.Printf("invalid input: empty namespace properties not accepted \n")
+			return errors.New("invalid input: empty namespace properties not accepted")
+		}
 		appDeployment.Namespace.NsId = "ns-" + uuid.New().String()
 		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
 			log.Println(err.Error())
@@ -98,6 +109,10 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		}
 	}
 
+	if req.App.ChartDetail == nil {
+		log.Printf("invalid input: null chart detail provided, %+v \n", req.App)
+		return errors.New("invalid input: null chart detail provided")
+	}
 	appDeployment.ChartDetail = req.App.ChartDetail
 	appChart, err := http.Get(getChartURL(chartmuseumURL, userID,
 		req.App.ChartDetail.ChartRepo) + "/" + req.App.ChartDetail.ChartName + "-" + req.App.ChartDetail.ChartVer + ".tgz")
@@ -148,7 +163,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 // Must return nil for gRPC handler
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *common_proto.Empty) error {
 	userID := common_util.GetUserID(ctx)
-	log.Println("Debug into CancelApp")
+	log.Println("Debug into CancelApp: %+v", req)
 
 	if err := checkId(userID, req.AppId); err != nil {
 		log.Println(err.Error())
@@ -233,19 +248,13 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty, rs
 }
 
 func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *appmgr.AppDetailResponse) error {
-	log.Println("debug into AppDetail")
+	log.Println("debug into AppDetail: %+v", req)
 
-	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_APP_DETAIL,
-		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: &common_proto.AppDeployment{AppId: req.AppId}},
-	}
-
-	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
+	appRecord, err := p.db.GetApp(req.AppId)
+	if err != nil {
 		log.Println(err.Error())
 		return err
 	}
-
-	appRecord, err := p.db.GetApp(req.AppId)
 
 	log.Printf(">>>>>>appMessage  %+v \n", appRecord)
 	if err != nil {
@@ -261,6 +270,16 @@ func (p *AppMgrHandler) AppDetail(ctx context.Context, req *appmgr.AppID, rsp *a
 	appMessage := convertToAppMessage(appRecord, p.db)
 	log.Printf("appMessage %+v \n", appMessage)
 	rsp.AppReport = &appMessage
+
+	event := common_proto.DCStream{
+		OpType:    common_proto.DCOperation_APP_DETAIL,
+		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appMessage.AppDeployment},
+	}
+
+	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
+		log.Println(err.Error())
+		return err
+	}
 
 	return nil
 }
@@ -286,7 +305,7 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 
 func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 	req *appmgr.UpdateAppRequest, rsp *common_proto.Empty) error {
-
+	log.Println("debug into UpdateApp: %+v", req)
 	uid := common_util.GetUserID(ctx)
 
 	if req.AppDeployment == nil || (req.AppDeployment.ChartDetail == nil ||
@@ -315,13 +334,17 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 	appDeployment := appReport.AppDeployment
 
 	if len(req.AppDeployment.AppName) > 0 {
-		appDeployment.AppName = req.AppDeployment.AppName
+		if err := p.db.Update("app", appDeployment.AppId,
+			bson.M{"$set": bson.M{"name": req.AppDeployment.AppName}}); err != nil {
+			log.Printf(err.Error())
+			return err
+		}
 	}
 
 	if req.AppDeployment.ChartDetail != nil &&
 		req.AppDeployment.ChartDetail.ChartVer != appDeployment.ChartDetail.ChartVer {
 		appChart, err := http.Get(getChartURL(chartmuseumURL, uid,
-			req.AppDeployment.ChartDetail.ChartRepo) + "/" + req.AppDeployment.ChartDetail.ChartName + "-" + req.AppDeployment.ChartDetail.ChartVer + ".tgz")
+			appDeployment.ChartDetail.ChartRepo) + "/" + appDeployment.ChartDetail.ChartName + "-" + req.AppDeployment.ChartDetail.ChartVer + ".tgz")
 		if err != nil {
 			log.Printf("cannot get app chart %s from chartmuseum\n", req.AppDeployment.ChartDetail.ChartName, err.Error())
 			return errors.New("internal error: cannot get app chart from chartmuseum")
@@ -332,22 +355,24 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 		}
 
 		appDeployment.ChartDetail.ChartVer = req.AppDeployment.ChartDetail.ChartVer
+
+		event := common_proto.DCStream{
+			OpType:    common_proto.DCOperation_APP_UPDATE,
+			OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
+		}
+
+		if err := p.deployApp.Publish(context.Background(), &event); err != nil {
+			log.Println(err.Error())
+			return err
+		}
+
+		// TODO: wait deamon notify
+		if err := p.db.UpdateApp(appDeployment); err != nil {
+			log.Println(err.Error())
+			return err
+		}
 	}
 
-	event := common_proto.DCStream{
-		OpType:    common_proto.DCOperation_APP_UPDATE,
-		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
-	}
-
-	if err := p.deployApp.Publish(context.Background(), &event); err != nil {
-		log.Println(err.Error())
-		return err
-	}
-	// TODO: wait deamon notify
-	if err := p.db.UpdateApp(appDeployment); err != nil {
-		log.Println(err.Error())
-		return err
-	}
 	return nil
 }
 
@@ -482,7 +507,7 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 
 	uid := common_util.GetUserID(ctx)
 
-	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" || len(req.ChartFile) == 0 {
+	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 || len(req.ChartFile) == 0 {
 		log.Printf("invalid input, create failed.\n")
 		return errors.New("invalid input, create failed")
 	}
@@ -551,8 +576,8 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 
 	uid := common_util.GetUserID(ctx)
 
-	if req.ChartName == "" || req.ChartRepo == "" || req.ChartVer == "" ||
-		req.SaveName == "" || req.SaveRepo == "" || req.SaveVer == "" {
+	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 ||
+		len(req.SaveName) == 0 || len(req.SaveRepo) == 0 || len(req.SaveVer) == 0 {
 		log.Printf("invalid input: empty chart properties not accepted \n")
 		return errors.New("invalid input: empty chart properties not accepted")
 	}
@@ -974,7 +999,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 	log.Printf("app manager service UpdateNamespace: %+v", req)
 	userId := common_util.GetUserID(ctx)
 
-	if req.Namespace == nil || len(req.Namespace.NsName) == 0 && (req.Namespace.NsCpuLimit == 0 ||
+	if req.Namespace == nil || (req.Namespace.NsCpuLimit == 0 ||
 		req.Namespace.NsMemLimit == 0 || req.Namespace.NsStorageLimit == 0) {
 		log.Printf("invalid input: empty namespace properties not accepted \n")
 		return errors.New("invalid input: empty namespace properties not accepted")
@@ -1004,10 +1029,6 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 		namespaceReport.Namespace.NsStorageLimit = req.Namespace.NsStorageLimit
 	}
 
-	if req.Namespace.NsName != "" {
-		namespaceReport.Namespace.NsName = req.Namespace.NsName
-	}
-
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_NS_UPDATE,
 		OpPayload: &common_proto.DCStream_Namespace{Namespace: namespaceReport.Namespace},
@@ -1019,7 +1040,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 	}
 	// TODO: wait deamon notify
 	if err := p.db.UpdateNamespace(req.Namespace); err != nil {
-		log.Println(err.Error())
+		log.Println("Err Status: %s, Err Message: $s", status.Code(err), err.Error())
 		return err
 	}
 	return nil

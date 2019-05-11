@@ -113,7 +113,6 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 				switch nsReport.NsEvent {
 				case common_proto.NamespaceEvent_UPDATE_NS_SUCCEED:
 					update["status"] = common_proto.NamespaceStatus_NS_RUNNING
-					update["name"] = nsRecord.NameUpdating
 					update["cpulimit"] = nsRecord.CpuLimitUpdating
 					update["memlimit"] = nsRecord.MemLimitUpdating
 					update["storagelimit"] = nsRecord.StorageLimitUpdating
