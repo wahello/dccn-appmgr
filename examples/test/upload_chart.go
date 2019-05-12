@@ -42,14 +42,14 @@ func main() {
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	//
-	file, err := ioutil.ReadFile("wordpress-5.6.0.tgz")
+	file, err := ioutil.ReadFile("wordpress-5.7.0.tgz")
 	if err != nil {
 		log.Panic(err.Error())
 	}
 	if _, err := appClient.UploadChart(tokenContext, &appmgr.UploadChartRequest{
 		ChartFile: file,
 		ChartName: "wordpress",
-		ChartVer:  "5.6.0",
+		ChartVer:  "5.7.0",
 		ChartRepo: "stable"}); err != nil {
 		log.Fatal(err)
 	} else {
