@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	"github.com/Ankr-network/dccn-common/protos"
@@ -209,8 +210,8 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 	if err != nil {
 		log.Printf("get namespace record failed, %s", err.Error())
 	}
-	namespace := convertFromNamespaceRecord(namespaceRecord)
-	message.Namespace = namespace.Namespace
+	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
+	message.Namespace = namespaceReport.Namespace
 	appReport := common_proto.AppReport{
 		AppDeployment: &message,
 		AppStatus:     app.Status,
@@ -218,6 +219,11 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 		Detail:        app.Detail,
 		Report:        app.Report,
 	}
+	if len(app.Detail) > 0 && len(message.Namespace.ClusterId) > 0 &&
+		strings.Contains(app.Detail, app.ID+"."+message.Namespace.ClusterId+".ankr.com") {
+		appReport.Endpoint = app.ID + "." + message.Namespace.ClusterId + ".ankr.com"
+	}
+
 	return appReport
 }
 
@@ -562,7 +568,7 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 	defer chartRes.Body.Close()
 	log.Printf(string(message))
 
-	if err = os.Remove(tarballName); err != nil {
+	if err := os.Remove(tarballName); err != nil {
 		log.Printf("delete temp chart tarball failed, %s \n", err.Error())
 	}
 	return nil
@@ -786,7 +792,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 	tarf[req.Chart.ChartName+"/README.md"] = ""
 	tarf[req.Chart.ChartName+"/values.yaml"] = ""
 
-	if err = extractFromTarfile(tarf, tarball); err != nil {
+	if err := extractFromTarfile(tarf, tarball); err != nil {
 		log.Printf("cannot find readme/value in chart tarball, %s \n", err.Error())
 		return errors.New("internal error: cannot find readme in chart tarball")
 	}
@@ -830,11 +836,13 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 	}
 	defer tarballRes.Body.Close()
 
-	rsp.ChartFile, err = ioutil.ReadAll(tarballRes.Body)
+	chartFile, err := ioutil.ReadAll(tarballRes.Body)
 	if err != nil {
 		log.Printf("cannot read chart tarball, %s \n", err.Error())
 		return errors.New("internal error: cannot read chart tarball")
 	}
+
+	rsp.ChartFile = chartFile
 
 	return nil
 }
