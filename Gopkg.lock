@@ -2,8 +2,8 @@
 
 
 [[projects]]
-  branch = "feature/SWDEV-262-endpoint"
-  digest = "1:6a8936634cd200a74cec13015e2892ab41f3f35e59a85e327f0cac9dc97c066b"
+  branch = "master"
+  digest = "1:ddc93dc2369d8c7f698a850d76fee6f67c17806a1a0c743d0c693df286086669"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "84f01e13bb65c51d5a1f0370da6d63629264b993"
+  revision = "374ecff1a3cb88a995d0ffad20b54f7b1d2b6a91"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -150,12 +150,12 @@
   version = "v0.5.1"
 
 [[projects]]
-  digest = "1:2be5a35f0c5b35162c41bb24971e5dcf6ce825403296ee435429cdcc4e1e847e"
+  digest = "1:6e9806a06d00f4d1f90806d7b5cfb11e35dca76503390ca6e704b05ea7051bff"
   name = "github.com/hashicorp/go-immutable-radix"
   packages = ["."]
   pruneopts = "UT"
-  revision = "27df80928bb34bb1b0d6d0e01b9e679902e7a6b5"
-  version = "v1.0.0"
+  revision = "7dd1121b595e4e1bd6dd5caa78e0f5c454740379"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:5d8539af558ca2ea960a4c11afb12c75ae9e9dca3560f1103318aaa2030e37e2"
@@ -174,7 +174,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:a54ada9beb59fdc35b69322979e870ff0b780e03f4dc309c4c8674b94927df75"
+  digest = "1:75ed48e676c79393be368f0272b6ee0ba489dc1ef7f0807eaed5bf8527c69c60"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   pruneopts = "UT"
@@ -425,7 +425,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5a757b691dbc5ea0aebd80b79c464d0a24679e27a5325b4972a70956a928b24a"
+  digest = "1:4c224364f8aa1a59b0267b519b459b126c2b2e55ba5e621c4936aa5ed006aa8e"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -443,13 +443,16 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "018c4d40a106a7ae83689758294fcd8d23850745"
+  revision = "f3200d17e092c607f615320ecaad13d87ad9a2b3"
 
 [[projects]]
   branch = "master"
-  digest = "1:6ed9319f79a63e30779042ef237f81770df4091866e43f84a643257384b0aefc"
+  digest = "1:76a8f15384d51164875fe295559d2e5a8180d67312bb040d0509b5b1114c0267"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "UT"
   revision = "8097e1b27ff5e40620836729a9584e91b094b062"
 
@@ -484,10 +487,10 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "bb713bdc0e5239f2b68e560efbe1c701a6fe78f9"
+  revision = "c2c4e71fbf6989c3e46a18d65cb88c288f8a3a55"
 
 [[projects]]
-  digest = "1:707c3a5d10ed430ea767d73df122d9eb3dfb6312bbacc9f2e39204390686d1d0"
+  digest = "1:c69a4c19c4f241e6b75ad65c5e7a1c4eec5705ae504624df4eb6fb659c2df46c"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -524,8 +527,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "25c4f928eaa6d96443009bd842389fb4fa48664e"
-  version = "v1.20.1"
+  revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
+  version = "v1.21.0"
 
 [[projects]]
   branch = "v2"
@@ -558,7 +561,7 @@
   revision = "b74e4c97951f106696db86d7593effcb1463ca30"
 
 [[projects]]
-  digest = "1:41198414a032fc59a14d19d85e88f9f50c873c149422278d9e7f6c0786cf074f"
+  digest = "1:094f472cc3b91a97ea03ed1523b56acf1ff43fb550c51ecd223c88a6204a9045"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
