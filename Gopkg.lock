@@ -2,8 +2,8 @@
 
 
 [[projects]]
-  branch = "master"
-  digest = "1:ddc93dc2369d8c7f698a850d76fee6f67c17806a1a0c743d0c693df286086669"
+  branch = "develop"
+  digest = "1:d855844e10db36c915f9c6ce8906d484c633b8f45efa9a114895a26dce0ab63c"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "374ecff1a3cb88a995d0ffad20b54f7b1d2b6a91"
+  revision = "920cfc264789be4fffe3d8293fce0972091764ef"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -130,8 +130,8 @@
     "watch",
   ]
   pruneopts = "UT"
-  revision = "ea5210a30e154f4da9a4c8e729b45b8ce7b9b92c"
-  version = "v1.4.4"
+  revision = "501c22b5563935713596034d47a1cbdef1ec1904"
+  version = "v1.4.5"
 
 [[projects]]
   digest = "1:0ade334594e69404d80d9d323445d2297ff8161637f9b2d347cc6973d2d6f05b"
@@ -174,7 +174,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:75ed48e676c79393be368f0272b6ee0ba489dc1ef7f0807eaed5bf8527c69c60"
+  digest = "1:a54ada9beb59fdc35b69322979e870ff0b780e03f4dc309c4c8674b94927df75"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   pruneopts = "UT"
@@ -222,12 +222,12 @@
   version = "v1.1.6"
 
 [[projects]]
-  digest = "1:6491a68a381ec652fad0b1ed9664870b21763058270be238fc9dd0875e21c095"
+  digest = "1:42deff47d28e82eddbcbcdb3bdd84acab83f220aef58d8f22b64a96bc6344cd1"
   name = "github.com/micro/cli"
   packages = ["."]
   pruneopts = "UT"
-  revision = "bef92b8564e931cfd32870e52be76880ce358235"
-  version = "v0.1.0"
+  revision = "c6d1b1f5d81baa9d46e2d6a15a92306c6c0faf4f"
+  version = "v0.2.0"
 
 [[projects]]
   digest = "1:fb7bcb7edb96c2a869a6171fd74ecdc9c33df38d34ddd844eec5065fdb82e51b"
@@ -333,12 +333,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:2c94f9293f5e811de26d526b51d9b3c7a0145c9b2ff68f70ad08c49630270889"
+  digest = "1:bb576d748d34ebc8f2598cd29cd00b0d8dd959c54bfbbc2cef2feb5f8a235846"
   name = "github.com/miekg/dns"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a2c73fb86d62c6fc8391d163814396a338cbcedf"
-  version = "v1.1.12"
+  revision = "d16ecb693e3f8d524769fefce2192a4c92207ff9"
+  version = "v1.1.13"
 
 [[projects]]
   digest = "1:5d231480e1c64a726869bc4142d270184c419749d34f167646baa21008eb0a79"
@@ -421,11 +421,11 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "22d7a77e9e5f409e934ed268692e56707cd169e5"
+  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
 
 [[projects]]
   branch = "master"
-  digest = "1:4c224364f8aa1a59b0267b519b459b126c2b2e55ba5e621c4936aa5ed006aa8e"
+  digest = "1:7a95f872c325c12f85db272430bb398db30bb474e56548300471d95cea654043"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -443,18 +443,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "f3200d17e092c607f615320ecaad13d87ad9a2b3"
+  revision = "60506f45cf65977eb3a9c6e30f995f54a721c271"
 
 [[projects]]
   branch = "master"
-  digest = "1:76a8f15384d51164875fe295559d2e5a8180d67312bb040d0509b5b1114c0267"
+  digest = "1:e456eadc3fc18795bdaf836c3a8f25d678cfdd52a5164cf1d3a64ffe23b8df1a"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "8097e1b27ff5e40620836729a9584e91b094b062"
+  revision = "4c4f7f33c9ed00de01c4c741d2177abfcfe19307"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -487,7 +487,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "c2c4e71fbf6989c3e46a18d65cb88c288f8a3a55"
+  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
 
 [[projects]]
   digest = "1:c69a4c19c4f241e6b75ad65c5e7a1c4eec5705ae504624df4eb6fb659c2df46c"
@@ -558,10 +558,10 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "b74e4c97951f106696db86d7593effcb1463ca30"
+  revision = "63a6072eb5639bb71283ec51b7450a128c1d00ac"
 
 [[projects]]
-  digest = "1:094f472cc3b91a97ea03ed1523b56acf1ff43fb550c51ecd223c88a6204a9045"
+  digest = "1:41198414a032fc59a14d19d85e88f9f50c873c149422278d9e7f6c0786cf074f"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
