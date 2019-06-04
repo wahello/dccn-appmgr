@@ -13,16 +13,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
-
-	"gopkg.in/mgo.v2"
 
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	"github.com/Ankr-network/dccn-common/protos"
 	"github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro"
 	"github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
 	micro "github.com/micro/go-micro"
 	"google.golang.org/grpc/status"
@@ -88,12 +84,6 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			return ankr_default.ErrStatusNotSupportOperation
 		}
 
-		clusterConnection, err := p.db.GetClusterConnection(namespaceRecord.ClusterID)
-		if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-			log.Println("cluster connection not available, app can not be created")
-			return errors.New("cluster connection not available, app can not be created")
-		}
-
 		appDeployment.Namespace = &common_proto.Namespace{
 			NsId:             namespaceRecord.ID,
 			NsName:           namespaceRecord.Name,
@@ -112,13 +102,6 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			appDeployment.Namespace.NsMemLimit == 0 || appDeployment.Namespace.NsStorageLimit == 0 {
 			log.Printf("invalid input: empty namespace properties not accepted \n")
 			return ankr_default.ErrNsEmpty
-		}
-		if len(appDeployment.Namespace.ClusterId) > 0 {
-			clusterConnection, err := p.db.GetClusterConnection(appDeployment.Namespace.ClusterId)
-			if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-				log.Println("cluster connection not available, app can not be created")
-				return errors.New("cluster connection not available, app can not be created")
-			}
 		}
 		appDeployment.Namespace.NsId = "ns-" + uuid.New().String()
 		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
@@ -198,12 +181,6 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID, rsp *c
 		return ankr_default.ErrCanceledTwice
 	}
 
-	clusterConnection, err := p.db.GetClusterConnection(app.AppDeployment.Namespace.ClusterId)
-	if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-		log.Println("cluster connection not available, app can not be canceled")
-		return errors.New("cluster connection not available, app can not be canceled")
-	}
-
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_CANCEL,
 		OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: app.AppDeployment},
@@ -226,10 +203,7 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 	message := common_proto.AppDeployment{}
 	message.AppId = app.ID
 	message.AppName = app.Name
-	message.Attributes = &common_proto.AppAttributes{
-		CreationDate:     app.CreationDate,
-		LastModifiedDate: app.LastModifiedDate,
-	}
+	message.Attributes = &app.Attributes
 	message.Uid = app.UID
 	message.ChartDetail = &app.ChartDetail
 	namespaceRecord, err := pdb.GetNamespace(app.NamespaceID)
@@ -267,32 +241,10 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty, rs
 	appsWithoutHidden := make([]*common_proto.AppReport, 0)
 
 	for i := 0; i < len(apps); i++ {
-		if !apps[i].Hidden && apps[i].Status == common_proto.AppStatus_APP_CANCELED &&
-			apps[i].LastModifiedDate.Seconds < (time.Now().Unix()-7200) {
-			apps[i].Hidden = true
-			p.db.Update("app", apps[i].ID, bson.M{"$set": bson.M{"hidden": true,
-				"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()}}})
-		}
-		if !apps[i].Hidden {
+		if apps[i].Hidden != true {
 			appMessage := convertToAppMessage(apps[i], p.db)
 			log.Printf("appMessage  %+v \n", appMessage)
-			if len(appMessage.AppDeployment.Namespace.ClusterId) > 0 {
-				clusterConnection, err := p.db.GetClusterConnection(appMessage.AppDeployment.Namespace.ClusterId)
-				if err != mgo.ErrNotFound && clusterConnection.Status == common_proto.DCStatus_UNAVAILABLE {
-					appMessage.AppStatus = common_proto.AppStatus_APP_UNAVAILABLE
-					appMessage.AppEvent = common_proto.AppEvent_APP_HEARTBEAT_FAILED
-				}
-			}
 			appsWithoutHidden = append(appsWithoutHidden, &appMessage)
-			if appMessage.AppStatus == common_proto.AppStatus_APP_RUNNING {
-				event := common_proto.DCStream{
-					OpType:    common_proto.DCOperation_APP_DETAIL,
-					OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appMessage.AppDeployment},
-				}
-				if err := p.deployApp.Publish(context.Background(), &event); err != nil {
-					log.Println(err.Error())
-				}
-			}
 		}
 	}
 
@@ -387,12 +339,6 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 
 	appDeployment := appReport.AppDeployment
 
-	clusterConnection, err := p.db.GetClusterConnection(appDeployment.Namespace.ClusterId)
-	if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-		log.Println("cluster connection not available, app can not be updated")
-		return errors.New("cluster connection not available, app can not be updated")
-	}
-
 	if len(req.AppDeployment.AppName) > 0 {
 		if err := p.db.Update("app", appDeployment.AppId,
 			bson.M{"$set": bson.M{"name": req.AppDeployment.AppName}}); err != nil {
@@ -485,7 +431,7 @@ func (p *AppMgrHandler) PurgeApp(ctx context.Context, req *appmgr.AppID, rsp *co
 		return ankr_default.ErrAppNotExist
 	}
 
-	if appRecord.Hidden {
+	if appRecord.Hidden == true {
 		log.Printf(" app id %s already purged \n", req.AppId)
 		return ankr_default.ErrAlreadyPurged
 	}
@@ -804,7 +750,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 	data := []Chart{}
 	if err := json.Unmarshal([]byte(message), &data); err != nil {
 		log.Printf("cannot unmarshal chart details, %s \n", err.Error())
-		return ankr_default.ErrUnMarshalChartDetail
+		return ankr_default.ErrUnMarshalChartDetail	
 	}
 
 	rsp.ChartName = req.Chart.ChartName
@@ -873,7 +819,7 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 {
 		log.Printf("invalid input: null chart detail provided, %+v \n", req)
-		return ankr_default.ErrChartDetailEmpty
+		return ankr_default.ErrChartDetailEmpty	
 	}
 
 	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL,
@@ -926,7 +872,7 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context,
 	delRes, err := http.DefaultClient.Do(delReq)
 	if err != nil {
 		log.Printf("cannot delete chart file, %s \n", err.Error())
-		return errors.New(ankr_default.LogicError + "Cannot delete chart file" + err.Error())
+		return errors.New(ankr_default.LogicError +"Cannot delete chart file"+err.Error())
 	}
 	defer delRes.Body.Close()
 
@@ -980,14 +926,6 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 		req.Namespace.NsMemLimit == 0 || req.Namespace.NsStorageLimit == 0 {
 		log.Printf("invalid input: empty namespace properties not accepted \n")
 		return ankr_default.ErrNsEmpty
-	}
-
-	if len(req.Namespace.ClusterId) > 0 {
-		clusterConnection, err := p.db.GetClusterConnection(req.Namespace.ClusterId)
-		if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-			log.Println("cluster connection not available, namespace can not be created")
-			return errors.New("cluster connection not available, namespace can not be created")
-		}
 	}
 
 	req.Namespace.NsId = "ns-" + uuid.New().String()
@@ -1050,23 +988,10 @@ func (p *AppMgrHandler) NamespaceList(ctx context.Context,
 	namespacesWithoutCancel := make([]*common_proto.NamespaceReport, 0)
 
 	for i := 0; i < len(namespaceRecords); i++ {
-
-		if !namespaceRecords[i].Hidden && namespaceRecords[i].Status == common_proto.NamespaceStatus_NS_CANCELED &&
-			namespaceRecords[i].LastModifiedDate.Seconds < (time.Now().Unix()-7200) {
-			namespaceRecords[i].Hidden = true
-			p.db.Update("namespace", userId, bson.M{"$set": bson.M{"hidden": true,
-				"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()}}})
-		}
-
-		if !namespaceRecords[i].Hidden {
-			namespaceMessage := convertFromNamespaceRecord(namespaceRecords[i])
-			log.Printf("NamespaceMessage  %+v \n", namespaceMessage)
-			clusterConnection, err := p.db.GetClusterConnection(namespaceRecords[i].ClusterID)
-			if err != mgo.ErrNotFound && clusterConnection.Status == common_proto.DCStatus_UNAVAILABLE {
-				namespaceMessage.NsStatus = common_proto.NamespaceStatus_NS_UNAVAILABLE
-				namespaceMessage.NsEvent = common_proto.NamespaceEvent_NS_HEARBEAT_FAILED
-			}
-			namespacesWithoutCancel = append(namespacesWithoutCancel, &namespaceMessage)
+		if namespaceRecords[i].Status != common_proto.NamespaceStatus_NS_CANCELED {
+			NamespaceMessage := convertFromNamespaceRecord(namespaceRecords[i])
+			log.Printf("NamespaceMessage  %+v \n", NamespaceMessage)
+			namespacesWithoutCancel = append(namespacesWithoutCancel, &NamespaceMessage)
 		}
 	}
 
@@ -1102,12 +1027,6 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 		namespaceRecord.Status != common_proto.NamespaceStatus_NS_UPDATE_FAILED {
 		log.Println("namespace status is not running, cannot update")
 		return ankr_default.ErrNSStatusCanNotUpdate
-	}
-
-	clusterConnection, err := p.db.GetClusterConnection(namespaceRecord.ClusterID)
-	if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-		log.Println("cluster connection not available, namespace can not be updated")
-		return errors.New("cluster connection not available, namespace can not be updated")
 	}
 
 	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
@@ -1155,23 +1074,6 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 
 	if namespaceRecord.Status == common_proto.NamespaceStatus_NS_CANCELED {
 		return ankr_default.ErrCanceledTwice
-	}
-
-	clusterConnection, err := p.db.GetClusterConnection(namespaceRecord.ClusterID)
-	if err != mgo.ErrNotFound && clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-		log.Println("cluster connection not available, namespace can not be deleted")
-		return errors.New("cluster connection not available, namespace can not be deleted")
-	}
-
-	apps, err := p.db.GetAllAppByNamespaceId(req.NsId)
-	if err != nil {
-		log.Println(err.Error())
-		return err
-	}
-	for _, app := range apps {
-		if app.Status != common_proto.AppStatus_APP_CANCELED {
-			return errors.New("namespace still got running app, can not delete.")
-		}
 	}
 
 	namespaceReport := convertFromNamespaceRecord(namespaceRecord)
