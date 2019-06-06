@@ -270,7 +270,7 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty, rs
 		if !apps[i].Hidden && apps[i].Status == common_proto.AppStatus_APP_CANCELED &&
 			apps[i].LastModifiedDate.Seconds < (time.Now().Unix()-7200) {
 			apps[i].Hidden = true
-			p.db.Update("app", userId, bson.M{"$set": bson.M{"hidden": true,
+			p.db.Update("app", apps[i].ID, bson.M{"$set": bson.M{"hidden": true,
 				"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()}}})
 		}
 		if !apps[i].Hidden {
