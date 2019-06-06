@@ -269,6 +269,7 @@ func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty, rs
 	for i := 0; i < len(apps); i++ {
 		if !apps[i].Hidden && apps[i].Status == common_proto.AppStatus_APP_CANCELED &&
 			apps[i].LastModifiedDate.Seconds < (time.Now().Unix()-7200) {
+			log.Printf(">>>>>>Canceled App time exceeded 7200 seconds:  %+v, Now: %+v \n", apps[i].LastModifiedDate.Seconds, time.Now().Unix())
 			apps[i].Hidden = true
 			p.db.Update("app", apps[i].ID, bson.M{"$set": bson.M{"hidden": true,
 				"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()}}})
@@ -1054,7 +1055,7 @@ func (p *AppMgrHandler) NamespaceList(ctx context.Context,
 		if !namespaceRecords[i].Hidden && namespaceRecords[i].Status == common_proto.NamespaceStatus_NS_CANCELED &&
 			namespaceRecords[i].LastModifiedDate.Seconds < (time.Now().Unix()-7200) {
 			namespaceRecords[i].Hidden = true
-			p.db.Update("namespace", userId, bson.M{"$set": bson.M{"hidden": true,
+			p.db.Update("namespace", namespaceRecords[i].ID, bson.M{"$set": bson.M{"hidden": true,
 				"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()}}})
 		}
 
