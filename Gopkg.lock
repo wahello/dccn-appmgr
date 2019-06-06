@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  branch = "develop"
+  branch = "master"
   digest = "1:d855844e10db36c915f9c6ce8906d484c633b8f45efa9a114895a26dce0ab63c"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "920cfc264789be4fffe3d8293fce0972091764ef"
+  revision = "c09e2de2eca1d3ffbdea35350e36dc71b550aab2"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -174,7 +174,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:a54ada9beb59fdc35b69322979e870ff0b780e03f4dc309c4c8674b94927df75"
+  digest = "1:75ed48e676c79393be368f0272b6ee0ba489dc1ef7f0807eaed5bf8527c69c60"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   pruneopts = "UT"
@@ -421,7 +421,7 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "20be4c3c3ed52bfccdb2d59a412ee1a936d175a7"
+  revision = "f99c8df09eb5bff426315721bfa5f16a99cad32c"
 
 [[projects]]
   branch = "master"
@@ -487,10 +487,10 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
+  revision = "eb0b1bdb6ae60fcfc41b8d907b50dfb346112301"
 
 [[projects]]
-  digest = "1:c69a4c19c4f241e6b75ad65c5e7a1c4eec5705ae504624df4eb6fb659c2df46c"
+  digest = "1:e8800ddadd6bce3bc0c5ffd7bc55dbdddc6e750956c10cc10271cade542fccbe"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -527,8 +527,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
-  version = "v1.21.0"
+  revision = "501c41df7f472c740d0674ff27122f3f48c80ce7"
+  version = "v1.21.1"
 
 [[projects]]
   branch = "v2"
@@ -561,7 +561,7 @@
   revision = "63a6072eb5639bb71283ec51b7450a128c1d00ac"
 
 [[projects]]
-  digest = "1:41198414a032fc59a14d19d85e88f9f50c873c149422278d9e7f6c0786cf074f"
+  digest = "1:094f472cc3b91a97ea03ed1523b56acf1ff43fb550c51ecd223c88a6204a9045"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
@@ -572,8 +572,8 @@
     "pkg/version",
   ]
   pruneopts = "UT"
-  revision = "05811b84a3f93603dd6c2fcfe57944dfa7ab7fd0"
-  version = "v2.14.0"
+  revision = "5270352a09c7e8b6e8c9593002a73535276507c0"
+  version = "v2.14.1"
 
 [solve-meta]
   analyzer-name = "dep"
