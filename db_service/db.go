@@ -1,10 +1,12 @@
 package dbservice
 
 import (
+	"errors"
 	"log"
 	"time"
 
 	dbcommon "github.com/Ankr-network/dccn-common/db"
+	ankr_default "github.com/Ankr-network/dccn-common/protos"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	mgo "gopkg.in/mgo.v2"
@@ -12,18 +14,27 @@ import (
 )
 
 type DBService interface {
-	// GetApp gets a app item by appmgr's id.
+	// GetApp gets a app item by app's id.
 	GetApp(id string) (AppRecord, error)
-	// GetAll gets all app related to user id.
+	// GetAllApp gets all app related to user id.
 	GetAllApp(userId string) ([]AppRecord, error)
+	// GetAllAppByNamespaceId gets all app related to namespace id.
+	GetAllAppByNamespaceId(namespaceId string) ([]AppRecord, error)
+	// GetAppCount gets all app related to user id in specific cluster.
 	GetAppCount(userId string, clusterId string) ([]AppRecord, error)
+	// GetNamespace gets a namespace item by namespace's id.
 	GetNamespace(namespaceId string) (NamespaceRecord, error)
+	// GetAllNamespaceByClusterId gets a namespace item by cluster's id.
+	GetAllNamespaceByClusterId(clusterId string) ([]NamespaceRecord, error)
+	// GetAllNamespace gets a namespace item by user's id.
 	GetAllNamespace(userId string) ([]NamespaceRecord, error)
 	// CancelApp sets app status CANCEL
 	CancelApp(appId string) error
+	// CancelNamespace sets namespace status CANCEL
 	CancelNamespace(namespaceId string) error
+	// CreateNamespace create new namespace
 	CreateNamespace(namespace *common_proto.Namespace, uid string) error
-	// Create Creates a new dc item if not exits.
+	// Create Creates a new app item if not exits.
 	CreateApp(appDeployment *common_proto.AppDeployment, uid string) error
 	// Update updates collection item
 	Update(collectId string, Id string, update bson.M) error
@@ -31,6 +42,10 @@ type DBService interface {
 	UpdateApp(app *common_proto.AppDeployment) error
 	// Close closes db connection
 	UpdateNamespace(namespace *common_proto.Namespace) error
+	// Create a new cluster connection
+	CreateClusterConnection(clusterID string, clusterStatus common_proto.DCStatus) error
+	// GetClusterConnection gets a cluster connection item by cluster's id.
+	GetClusterConnection(clusterID string) (ClusterConnectionRecord, error)
 
 	Close()
 	// for test usage
@@ -46,18 +61,19 @@ type DB struct {
 }
 
 type AppRecord struct {
-	ID            string
-	UID           string
-	Name          string
-	NamespaceID   string                 // mongodb name is low field
-	Status        common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
-	Event         common_proto.AppEvent
-	Detail        string
-	Report        string
-	Hidden        bool
-	Attributes    common_proto.AppAttributes
-	ChartDetail   common_proto.ChartDetail
-	ChartUpdating common_proto.ChartDetail
+	ID               string
+	UID              string
+	Name             string
+	NamespaceID      string                 // mongodb name is low field
+	Status           common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
+	Event            common_proto.AppEvent
+	Detail           string
+	Report           string
+	Hidden           bool
+	CreationDate     *timestamp.Timestamp
+	LastModifiedDate *timestamp.Timestamp
+	ChartDetail      common_proto.ChartDetail
+	ChartUpdating    common_proto.ChartDetail
 }
 
 // New returns DBService.
@@ -85,6 +101,10 @@ func (p *DB) GetApp(appId string) (AppRecord, error) {
 
 	var app AppRecord
 	err := p.collection(session, "app").Find(bson.M{"id": appId}).One(&app)
+	if err != nil {
+		return app, errors.New(ankr_default.DbError + err.Error())
+	}
+
 	return app, err
 }
 
@@ -96,9 +116,8 @@ func (p *DB) GetAppCount(userId string, clusterId string) ([]AppRecord, error) {
 	var apps []AppRecord
 
 	log.Printf("find app count with uid %s clusterid %s", userId, clusterId)
-
 	if err := p.collection(session, "app").Find(bson.M{"uid": userId}).All(&apps); err != nil {
-		return nil, err
+		return nil, errors.New(ankr_default.DbError + err.Error())
 	}
 
 	var res []AppRecord
@@ -107,7 +126,7 @@ func (p *DB) GetAppCount(userId string, clusterId string) ([]AppRecord, error) {
 		for _, v := range apps {
 			var namespace NamespaceRecord
 			if err := p.collection(session, "namespace").Find(bson.M{"id": v.NamespaceID}).One(&namespace); err != nil {
-				return nil, err
+				return nil, errors.New(ankr_default.DbError + err.Error())
 			}
 			if namespace.ClusterID == clusterId {
 				res = append(res, v)
@@ -129,6 +148,20 @@ func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
 	log.Printf("find apps with uid %s", userId)
 
 	if err := p.collection(session, "app").Find(bson.M{"uid": userId}).All(&apps); err != nil {
+		return nil, errors.New(ankr_default.DbError + err.Error())
+	}
+	return apps, nil
+}
+
+func (p *DB) GetAllAppByNamespaceId(namespaceId string) ([]AppRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var apps []AppRecord
+
+	log.Printf("find apps with namespace id %s", namespaceId)
+
+	if err := p.collection(session, "app").Find(bson.M{"namespaceid": namespaceId}).All(&apps); err != nil {
 		return nil, err
 	}
 	return apps, nil
@@ -141,7 +174,7 @@ func (p *DB) GetByEvent(event string) (*[]*common_proto.App, error) {
 
 	var apps []*common_proto.App
 	if err := p.collection(session, "app").Find(bson.M{"event": event}).One(&apps); err != nil {
-		return nil, err
+		return nil, errors.New(ankr_default.DbError + err.Error())
 	}
 	return &apps, nil
 }
@@ -160,9 +193,13 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	appRecord.NamespaceID = appDeployment.Namespace.NsId
 	appRecord.ChartDetail = *appDeployment.ChartDetail
 	now := time.Now().Unix()
-	appRecord.Attributes.LastModifiedDate = &timestamp.Timestamp{Seconds: now}
-	appRecord.Attributes.CreationDate = &timestamp.Timestamp{Seconds: now}
-	return p.collection(session, "app").Insert(appRecord)
+	appRecord.LastModifiedDate = &timestamp.Timestamp{Seconds: now}
+	appRecord.CreationDate = &timestamp.Timestamp{Seconds: now}
+	err := p.collection(session, "app").Insert(appRecord)
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
 }
 
 // Update updates item.
@@ -170,7 +207,11 @@ func (p *DB) Update(collection string, id string, update bson.M) error {
 	session := p.session.Copy()
 	defer session.Close()
 
-	return p.collection(session, collection).Update(bson.M{"id": id}, update)
+	err := p.collection(session, collection).Update(bson.M{"id": id}, update)
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
 }
 
 func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
@@ -189,8 +230,12 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	fields["lastmodifieddate"] = &timestamp.Timestamp{Seconds: now}
 	fields["chartupdating"] = appDeployment.ChartDetail
 
-	return p.collection(session, "app").Update(
+	err := p.collection(session, "app").Update(
 		bson.M{"id": appDeployment.AppId}, bson.M{"$set": fields})
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
 
 }
 
@@ -200,9 +245,13 @@ func (p *DB) CancelApp(appId string) error {
 	defer session.Close()
 
 	now := time.Now().Unix()
-	return p.collection(session, "app").Update(bson.M{"id": appId},
+	err := p.collection(session, "app").Update(bson.M{"id": appId},
 		bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELED,
-			"attributes": bson.M{"lastmodifieddate": now}}})
+			"lastmodifieddate": &timestamp.Timestamp{Seconds: now}}})
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
 }
 
 // Close closes the db connection.
@@ -234,6 +283,7 @@ type NamespaceRecord struct {
 	StorageLimitUpdating uint32
 	Status               common_proto.NamespaceStatus
 	Event                common_proto.NamespaceEvent
+	Hidden               bool
 }
 
 func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
@@ -242,7 +292,9 @@ func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
 
 	var namespace NamespaceRecord
 	err := p.collection(session, "namespace").Find(bson.M{"id": namespaceId}).One(&namespace)
-
+	if err != nil {
+		return namespace, errors.New(ankr_default.DbError + err.Error())
+	}
 	return namespace, err
 }
 
@@ -255,6 +307,20 @@ func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
 	log.Printf("find apps with uid %s", userId)
 
 	if err := p.collection(session, "namespace").Find(bson.M{"uid": userId}).All(&namespaces); err != nil {
+		return nil, errors.New(ankr_default.DbError + err.Error())
+	}
+	return namespaces, nil
+}
+
+func (p *DB) GetAllNamespaceByClusterId(clusterId string) ([]NamespaceRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var namespaces []NamespaceRecord
+
+	log.Printf("find apps with cluster id %s", clusterId)
+
+	if err := p.collection(session, "namespace").Find(bson.M{"clusterid": clusterId}).All(&namespaces); err != nil {
 		return nil, err
 	}
 	return namespaces, nil
@@ -276,7 +342,11 @@ func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) erro
 	namespacerecord.CpuLimit = namespace.NsCpuLimit
 	namespacerecord.MemLimit = namespace.NsMemLimit
 	namespacerecord.StorageLimit = namespace.NsStorageLimit
-	return p.collection(session, "namespace").Insert(namespacerecord)
+	err := p.collection(session, "namespace").Insert(namespacerecord)
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
 }
 
 func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
@@ -296,9 +366,15 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 		fields["status"] = common_proto.NamespaceStatus_NS_UPDATING
 	}
 
-	return p.collection(session, "namespace").Update(bson.M{"id": namespace.NsId},
-		bson.M{"$set": fields})
+	now := time.Now().Unix()
+	fields["lastmodifieddate"] = &timestamp.Timestamp{Seconds: now}
 
+	err := p.collection(session, "namespace").Update(bson.M{"id": namespace.NsId},
+		bson.M{"$set": fields})
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
 }
 
 func (p *DB) CancelNamespace(NamespaceId string) error {
@@ -306,8 +382,44 @@ func (p *DB) CancelNamespace(NamespaceId string) error {
 	defer session.Close()
 
 	now := time.Now().Unix()
-	return p.collection(session, "namespace").Update(
+	err := p.collection(session, "namespace").Update(
 		bson.M{"id": NamespaceId},
 		bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELED,
-			"Last_modified_date": now}})
+			"lastmodifieddate": &timestamp.Timestamp{Seconds: now}}})
+	if err != nil {
+		return errors.New(ankr_default.DbError + err.Error())
+	}
+	return nil
+}
+
+type ClusterConnectionRecord struct {
+	ID               string
+	Status           common_proto.DCStatus
+	LastModifiedDate *timestamp.Timestamp
+	CreationDate     *timestamp.Timestamp
+}
+
+func (p *DB) GetClusterConnection(clusterID string) (ClusterConnectionRecord, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	var clusterConnection ClusterConnectionRecord
+	err := p.collection(session, "clusterconnection").Find(bson.M{"id": clusterID}).One(&clusterConnection)
+
+	return clusterConnection, err
+}
+
+func (p *DB) CreateClusterConnection(clusterID string, clusterStatus common_proto.DCStatus) error {
+	session := p.session.Copy()
+	defer session.Close()
+
+	now := time.Now().Unix()
+	clusterConnection := &ClusterConnectionRecord{
+		ID:               clusterID,
+		Status:           clusterStatus,
+		LastModifiedDate: &timestamp.Timestamp{Seconds: now},
+		CreationDate:     &timestamp.Timestamp{Seconds: now},
+	}
+
+	return p.collection(session, "clusterconnection").Insert(clusterConnection)
 }

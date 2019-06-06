@@ -5,8 +5,11 @@ import (
 	"log"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -22,7 +25,7 @@ func New(db db.DBService) *AppStatusFeedback {
 func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Context, stream *common_proto.DCStream) error {
 
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v with payload: %+v ", stream.GetOpType(), stream.GetOpPayload())
-	var update bson.M
+	update := bson.M{}
 	var collection string
 	var id string
 	switch x := stream.OpPayload.(type) {
@@ -37,11 +40,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			return err
 		}
 
-		update = bson.M{
-			"report":           appReport.Report,
-			"event":            appReport.AppEvent,
-			"lastmodifieddate": time.Now().Unix(),
-		}
+		update["report"] = appReport.Report
 
 		opType := stream.GetOpType()
 		switch opType {
@@ -56,6 +55,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 				case common_proto.AppEvent_DISPATCH_APP:
 					update["status"] = common_proto.AppStatus_APP_LAUNCHING
 				}
+				update["event"] = appReport.AppEvent
 			}
 		case common_proto.DCOperation_APP_UPDATE:
 			if appRecord.Status == common_proto.AppStatus_APP_UPDATING {
@@ -66,9 +66,11 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 				case common_proto.AppEvent_UPDATE_APP_FAILED:
 					update["status"] = common_proto.AppStatus_APP_UPDATE_FAILED
 				}
+				update["event"] = appReport.AppEvent
 			}
 		case common_proto.DCOperation_APP_CANCEL:
 			update["status"] = common_proto.AppStatus_APP_CANCELED
+			update["event"] = appReport.AppEvent
 		case common_proto.DCOperation_APP_DETAIL:
 			update["detail"] = appReport.Detail
 		default:
@@ -88,9 +90,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 			return err
 		}
 
-		update = bson.M{
-			"event": nsReport.NsEvent,
-		}
+		update["event"] = nsReport.NsEvent
 
 		opType := stream.GetOpType()
 		switch opType {
@@ -107,6 +107,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 				case common_proto.NamespaceEvent_DISPATCH_NS:
 					update["status"] = common_proto.NamespaceStatus_NS_LAUNCHING
 				}
+
 			}
 		case common_proto.DCOperation_NS_UPDATE:
 			if nsRecord.Status == common_proto.NamespaceStatus_NS_UPDATING {
@@ -128,10 +129,24 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Conte
 
 		collection = "namespace"
 		id = nsReport.Namespace.NsId
+		update["lastmodifieddate"] = &timestamp.Timestamp{Seconds: time.Now().Unix()}
+
+	case *common_proto.DCStream_DataCenter:
+		if _, err := p.db.GetClusterConnection(stream.GetDataCenter().DcId); err == mgo.ErrNotFound {
+			if err = p.db.CreateClusterConnection(stream.GetDataCenter().DcId, stream.GetDataCenter().DcStatus); err != nil {
+				log.Printf("Create cluster connection failed %v", err)
+				return err
+			}
+		}
+		collection = "clusterconnection"
+		id = stream.GetDataCenter().DcId
+		update["status"] = stream.GetDataCenter().DcStatus
 
 	default:
 		log.Printf("OpPayload has unexpected type %T", x)
 	}
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Update Collection %s on ID %s Update: %s", collection, id, update)
+
+	update["lastmodifieddate"] = &timestamp.Timestamp{Seconds: time.Now().Unix()}
 	return p.db.Update(collection, id, bson.M{"$set": update})
 }
