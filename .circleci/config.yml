@@ -54,33 +54,21 @@ jobs:
               CHARTMUSEUM_URL="http://chart-dev.dccn.ankr.com:8080"
             fi
 
-            declare -a component_arr=("dccn-appmgr")
-            declare -a dockerfile_arr=("app")
-            if [[ (${#component_arr[@]} == ${#dockerfile_arr[@]}) ]]
-            then
-              arrlen=${#component_arr[@]}
-            else
-              exit 1
-            fi
-
             dep ensure --vendor-only 
 
-            for((i=0; i<arrlen; i++)); do
-              docker build --no-cache --build-arg CHARTMUSEUM_URL=${CHARTMUSEUM_URL}  -f "dockerfile"/${dockerfile_arr[$i]}.Dockerfile -t ${component_arr[$i]}:$BRANCH_NAME .
-              for TAG in $BRANCH_NAME $SHA1_SHORT $BRANCH_NAME$DATE; do
-                docker tag ${component_arr[$i]}:$BRANCH_NAME $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${component_arr[$i]}:$TAG
-                docker push $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${component_arr[$i]}:$TAG
-              done
+            docker build --no-cache --build-arg CHARTMUSEUM_URL=${CHARTMUSEUM_URL}  -f dockerfile/app.Dockerfile -t dccn-appmgr:$BRANCH_NAME .
+            for TAG in $BRANCH_NAME $SHA1_SHORT $BRANCH_NAME$DATE; do
+              docker tag dccn-appmgr:$BRANCH_NAME $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/dccn-appmgr:$TAG
+              docker push $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/dccn-appmgr:$TAG
             done
-            declare -a deployment_arr=("appmgr")
-            declare -a name_arr=("dccn-appmgr")
-
+            
             kops export kubecfg --name ${K8S_CLUSTER}.k8s.ankr.network --state s3://kops.${K8S_CLUSTER}.config
-            for ((i=0; i<arrlen; i++)); do
-              kubectl set image ${name_arr[$i]}=$AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/${component_arr[$i]}:${BRANCH_NAME}${DATE} --local -f kubernetes/${dockerfile_arr[$i]}.yml -o yaml > kubernetes/${dockerfile_arr[$i]}_patch.yml
-              kubectl apply -f kubernetes/${dockerfile_arr[$i]}_patch.yml
-              if ! kubectl rollout status deploy/${deployment_arr[$i]} --watch=true --timeout=60s; then
-                echo "Deploy failed, roll back to previous version"
-                kubectl rollout undo deploy/${deployment_arr[$i]} 
-              fi
-            done
+            
+            kubectl set image dccn-appmgr=$AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/dccn-appmgr:${BRANCH_NAME}${DATE} --local -f kubernetes/app.yml -o yaml > kubernetes/app_patch.yml
+            kubectl apply -f kubernetes/app_patch.yml
+            if ! kubectl rollout status deploy/appmgr --watch=true --timeout=60s; then
+              echo "Deploy failed, roll back to previous version"
+              kubectl rollout undo deploy/appmgr 
+            fi
+            kubectl apply -f kubernetes/app_svc.yml
+            
