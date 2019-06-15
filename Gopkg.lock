@@ -2,8 +2,8 @@
 
 
 [[projects]]
-  branch = "master"
-  digest = "1:d855844e10db36c915f9c6ce8906d484c633b8f45efa9a114895a26dce0ab63c"
+  branch = "develop"
+  digest = "1:b9bb1e5fe7f9b5df9c23462d3b95a85b893e1230de834c80775b82b82c82ed0e"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "db",
@@ -14,7 +14,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "c09e2de2eca1d3ffbdea35350e36dc71b550aab2"
+  revision = "add6b098aa4586b12a3449ff475afbe22f736922"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -174,12 +174,12 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:75ed48e676c79393be368f0272b6ee0ba489dc1ef7f0807eaed5bf8527c69c60"
+  digest = "1:256b0768f7f3f37c0fd3d5ff355a6a5bbdb508957ee614b60f0d28a780973f4b"
   name = "github.com/hashicorp/go-rootcerts"
   packages = ["."]
   pruneopts = "UT"
-  revision = "63503fb4e1eca22f9ae0f90b49c5d5538a0e87eb"
-  version = "v1.0.0"
+  revision = "df8e78a645e18d56ed7bb9ae10ffb8174ab892e2"
+  version = "v1.0.1"
 
 [[projects]]
   digest = "1:8abc57884881876d02f467bb7d4ed7ce3a58dac3f8f7ba60579ce4ffc6afd7e1"
@@ -333,12 +333,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:bb576d748d34ebc8f2598cd29cd00b0d8dd959c54bfbbc2cef2feb5f8a235846"
+  digest = "1:7c572c76f914b3d3f7d75ce752c3a6ac5ba03be1f775e4602a3f18d7b08ddbbb"
   name = "github.com/miekg/dns"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d16ecb693e3f8d524769fefce2192a4c92207ff9"
-  version = "v1.1.13"
+  revision = "9cfcfb2209aecb663673bd44b11f71c215186b80"
+  version = "v1.1.14"
 
 [[projects]]
   digest = "1:5d231480e1c64a726869bc4142d270184c419749d34f167646baa21008eb0a79"
@@ -421,11 +421,11 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "f99c8df09eb5bff426315721bfa5f16a99cad32c"
+  revision = "5c40567a22f818bd14a1ea7245dad9f8ef0691aa"
 
 [[projects]]
   branch = "master"
-  digest = "1:7a95f872c325c12f85db272430bb398db30bb474e56548300471d95cea654043"
+  digest = "1:cc3eac94ee98164c6e08bb4eb899b2cc2ce03ba3f5ffe245d8a65fb72cc156e3"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -443,18 +443,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "60506f45cf65977eb3a9c6e30f995f54a721c271"
+  revision = "d28f0bde5980168871434b95cfc858db9f2a7a99"
 
 [[projects]]
   branch = "master"
-  digest = "1:e456eadc3fc18795bdaf836c3a8f25d678cfdd52a5164cf1d3a64ffe23b8df1a"
+  digest = "1:f2c32902d39ffb1008a25fc84dd5dd766878052173e9ac32e0fa526feb60101d"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "4c4f7f33c9ed00de01c4c741d2177abfcfe19307"
+  revision = "b47fdc937951267e2d980171881317deea47f29b"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -487,7 +487,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "eb0b1bdb6ae60fcfc41b8d907b50dfb346112301"
+  revision = "a7e196e89fd3a3c4d103ca540bd5dac3a736e375"
 
 [[projects]]
   digest = "1:e8800ddadd6bce3bc0c5ffd7bc55dbdddc6e750956c10cc10271cade542fccbe"
@@ -558,7 +558,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "63a6072eb5639bb71283ec51b7450a128c1d00ac"
+  revision = "6a5db36e93ad748d0bd973480dfd58d80dd8d94b"
 
 [[projects]]
   digest = "1:094f472cc3b91a97ea03ed1523b56acf1ff43fb550c51ecd223c88a6204a9045"
