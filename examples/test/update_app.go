@@ -46,7 +46,7 @@ func main() {
 	//
 	appDeployment := common_proto.AppDeployment{}
 	appDeployment.AppId = os.Args[1]
-	log.Printf("APP ID: %s", appDeployment.Id)
+	log.Printf("APP ID: %s", appDeployment.AppId)
 	appDeployment.AppName = "wordpress_test1"
 	appDeployment.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",

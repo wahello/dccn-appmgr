@@ -38,18 +38,6 @@
   version = "1.0.0"
 
 [[constraint]]
-  name = "github.com/micro/go-grpc"
-  version = "1.0.0"
-
-[[constraint]]
-  name = "github.com/micro/go-micro"
-  version = "0.26.1"
-
-[[constraint]]
-  name = "github.com/micro/go-plugins"
-  version = "1.0.0"
-
-[[constraint]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
 

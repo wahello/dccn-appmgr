@@ -42,8 +42,8 @@ func main() {
 	defer cancel()
 	//
 
-	if rsp, err := appClient.DeleteChart(tokenContext, &appmgr.DeleteChartRequest{
-		ChartVer:  "5.6.0",
+	if _, err := appClient.DeleteChart(tokenContext, &appmgr.DeleteChartRequest{
+		ChartVer:  "5.6.3",
 		ChartName: "wordpress",
 		ChartRepo: "stable",
 	}); err != nil {

@@ -1,7 +1,6 @@
 package subscriber
 
 import (
-	"context"
 	"log"
 	"time"
 
@@ -22,7 +21,7 @@ func New(db db.DBService) *AppStatusFeedback {
 }
 
 // UHandlerFeedbackEventFromDataCenter receives app report result from data center and update record
-func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(ctx context.Context, stream *common_proto.DCStream) error {
+func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_proto.DCStream) error {
 
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v with payload: %+v ", stream.GetOpType(), stream.GetOpPayload())
 	update := bson.M{}
