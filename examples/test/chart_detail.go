@@ -9,7 +9,7 @@ import (
 	"time"
 
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
-	common_protos "github.com/Ankr-network/dccn-common/protos/common"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
@@ -44,10 +44,10 @@ func main() {
 	//
 
 	if rsp, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
-		Chart: &common_protos.Chart{
+		Chart: &common_proto.Chart{
 			ChartName: "wordpress",
 			ChartRepo: "stable"},
-		ShowVersion: "5.6.0",
+		ShowVersion: "5.6.2",
 	}); err != nil {
 		log.Fatal(err)
 	} else {

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	common "github.com/Ankr-network/dccn-common/protos/common"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 )
 
 var addr = "appmgr:50051"
@@ -42,7 +42,7 @@ func main() {
 	defer cancel()
 	//
 
-	if rsp, err := appClient.NamespaceList(tokenContext, &common.Empty{}); err != nil {
+	if rsp, err := appClient.NamespaceList(tokenContext, &common_proto.Empty{}); err != nil {
 		log.Fatal(err)
 	} else {
 		log.Println("namespace list successfully: \n %+v ", rsp.NamespaceReports)

@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	//usermgr "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc"
-	common "github.com/Ankr-network/dccn-common/protos/common"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 )
 
 var addr = "appmgr:50051"
@@ -43,7 +43,7 @@ func main() {
 	defer cancel()
 	//
 
-	if res, err := appClient.AppList(tokenContext, &common.Empty{}); err != nil {
+	if res, err := appClient.AppList(tokenContext, &common_proto.Empty{}); err != nil {
 		log.Fatal(err)
 	} else {
 		log.Printf("app list successfully : \n  %v ", res.AppReports)

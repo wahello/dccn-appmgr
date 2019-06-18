@@ -3,22 +3,18 @@ package main
 import (
 	"log"
 
-	grpc "github.com/micro/go-grpc"
-	micro "github.com/micro/go-micro"
+	micro2 "github.com/Ankr-network/dccn-common/ankr-micro"
 
 	ankr_default "github.com/Ankr-network/dccn-common/protos"
-	pb "github.com/Ankr-network/dccn-common/protos/appmgr/v1/micro"
+	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 
 	"github.com/Ankr-network/dccn-appmgr/config"
 	dbservice "github.com/Ankr-network/dccn-appmgr/db_service"
 	"github.com/Ankr-network/dccn-appmgr/handler"
 	"github.com/Ankr-network/dccn-appmgr/subscriber"
-
-	_ "github.com/micro/go-plugins/broker/rabbitmq"
 )
 
 var (
-	srv  micro.Service
 	conf config.Config
 	db   dbservice.DBService
 	err  error
@@ -49,30 +45,19 @@ func Init() {
 func startHandler(db dbservice.DBService) {
 	// var srv micro.Service
 	// New Service
-	srv = grpc.NewService(
-		micro.Name(ankr_default.AppMgrRegistryServerName),
-	)
-
-	// Initialise srv
-	srv.Init()
-
-	// New Publisher to deploy new app action.
-	deployApp := micro.NewPublisher(ankr_default.MQDeployApp, srv.Client())
+	srv := micro2.NewService()
 
 	// Register Function as AppStatusFeedback to update app by data center manager's feedback.
-	opt := srv.Server().Options()
-	opt.Broker.Connect()
-	if err := micro.RegisterSubscriber(ankr_default.MQFeedbackApp, srv.Server(), subscriber.New(db)); err != nil {
+	if err := micro2.RegisterSubscriber(ankr_default.MQFeedbackApp, subscriber.New(db)); err != nil {
 		log.Fatal(err.Error())
 	}
 
+	// New Publisher to deploy new app action.
+	deployAppPublisher := micro2.NewPublisher(ankr_default.MQDeployApp)
 	// Register Handler
-	if err := pb.RegisterAppMgrHandler(srv.Server(), handler.New(db, deployApp)); err != nil {
-		log.Fatal(err.Error())
-	}
+	deployAppHandler := handler.New(db, deployAppPublisher)
+	appmgr.RegisterAppMgrServer(srv.GetServer(), deployAppHandler)
 
 	// Run srv
-	if err := srv.Run(); err != nil {
-		log.Println(err.Error())
-	}
+	srv.Start()
 }

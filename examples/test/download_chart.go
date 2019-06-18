@@ -45,7 +45,7 @@ func main() {
 	//
 
 	if rsp, err := appClient.DownloadChart(tokenContext, &appmgr.DownloadChartRequest{
-		ChartVer:  "5.6.0",
+		ChartVer:  "5.6.2",
 		ChartName: "wordpress",
 		ChartRepo: "stable",
 	}); err != nil {
