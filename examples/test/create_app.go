@@ -47,14 +47,14 @@ func main() {
 	app.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",
 		ChartName: "wordpress",
-		ChartVer:  "5.6.0",
+		ChartVer:  "5.6.2",
 	}
 	app.NamespaceData = &common_proto.App_Namespace{
 		Namespace: &common_proto.Namespace{
 			NsName:         "test_ns1",
-			NsCpuLimit:     300,
-			NsMemLimit:     500,
-			NsStorageLimit: 10,
+			NsCpuLimit:     1000,
+			NsMemLimit:     2000,
+			NsStorageLimit: 50000,
 		},
 	}
 

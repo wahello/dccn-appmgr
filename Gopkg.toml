@@ -26,7 +26,7 @@
 
 
 [[constraint]]
-  branch = "master"
+  branch = "develop"
   name = "github.com/Ankr-network/dccn-common"
 
 [[constraint]]
@@ -35,18 +35,6 @@
 
 [[constraint]]
   name = "github.com/gorhill/cronexpr"
-  version = "1.0.0"
-
-[[constraint]]
-  name = "github.com/micro/go-grpc"
-  version = "1.0.0"
-
-[[constraint]]
-  name = "github.com/micro/go-micro"
-  version = "0.26.1"
-
-[[constraint]]
-  name = "github.com/micro/go-plugins"
   version = "1.0.0"
 
 [[constraint]]
