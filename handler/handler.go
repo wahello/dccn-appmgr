@@ -17,10 +17,11 @@ import (
 
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	micro2 "github.com/Ankr-network/dccn-common/ankr-micro"
-	"github.com/Ankr-network/dccn-common/protos"
-	"github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
-	"github.com/Ankr-network/dccn-common/protos/common"
+	ankr_default "github.com/Ankr-network/dccn-common/protos"
+	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
+	"github.com/Masterminds/semver"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/status"
@@ -540,6 +541,18 @@ func checkId(userId, appId string) error {
 	return nil
 }
 
+func checkNsId(userId, nsId string) error {
+	if userId == "" {
+		return ankr_default.ErrUserNotExist
+	}
+
+	if nsId == "" || nsId != userId {
+		return errors.New("User does not own this namespace")
+	}
+
+	return nil
+}
+
 // Chart is a struct representing a chartmuseum chart in the manifest
 type Chart struct {
 	Name        string       `json:"name"`
@@ -574,6 +587,12 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 		log.Printf("invalid input, create failed.\n")
 		return &common_proto.Empty{}, ankr_default.ErrInvalidInput
 	}
+
+	_, err := semver.NewVersion(req.ChartVer)
+	if err != nil {
+		return &common_proto.Empty{}, errors.New("chart version is not a valid Semantic Version")
+	}
+
 	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode == 200 {
 		log.Printf("chart already exist, create failed.\n")
@@ -642,6 +661,11 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 		len(req.SaveName) == 0 || len(req.SaveRepo) == 0 || len(req.SaveVer) == 0 {
 		log.Printf("invalid input: empty chart properties not accepted \n")
 		return &common_proto.Empty{}, ankr_default.ErrEmptyChartProperties
+	}
+
+	_, err := semver.NewVersion(req.SaveVer)
+	if err != nil {
+		return &common_proto.Empty{}, errors.New("chart version is not a valid Semantic Version")
 	}
 
 	querySaveChart, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
@@ -974,8 +998,11 @@ func extractFromTarfile(tarf map[string]string, tarball *tar.Reader) error {
 func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 	req *appmgr.CreateNamespaceRequest) (*appmgr.CreateNamespaceResponse, error) {
 
-	uid := common_util.GetUserID(ctx)
 	rsp := &appmgr.CreateNamespaceResponse{}
+	uid := common_util.GetUserID(ctx)
+	if len(uid) == 0 {
+		return rsp, errors.New("user id not found in context")
+	}
 	log.Printf(">>>>>>>>>Debug into CreateNamespace: %+v\nctx: %+v\n", req, ctx)
 
 	if req.Namespace == nil || req.Namespace.NsCpuLimit == 0 ||
@@ -1039,8 +1066,11 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 func (p *AppMgrHandler) NamespaceList(ctx context.Context,
 	req *common_proto.Empty) (*appmgr.NamespaceListResponse, error) {
 
-	userId := common_util.GetUserID(ctx)
 	rsp := &appmgr.NamespaceListResponse{}
+	userId := common_util.GetUserID(ctx)
+	if len(userId) == 0 {
+		return rsp, errors.New("user id not found in context")
+	}
 	log.Printf(">>>>>>>>>Debug into NamespaceList, ctx: %+v\n", ctx)
 
 	namespaceRecords, err := p.db.GetAllNamespace(userId)
@@ -1097,7 +1127,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}
-	if err := checkId(userId, namespaceRecord.UID); err != nil {
+	if err := checkNsId(userId, namespaceRecord.UID); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}
@@ -1152,7 +1182,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 		return &common_proto.Empty{}, err
 	}
 
-	if err := checkId(userId, namespaceRecord.UID); err != nil {
+	if err := checkNsId(userId, namespaceRecord.UID); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}
@@ -1174,7 +1204,8 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 	}
 	for _, app := range apps {
 		if app.Status != common_proto.AppStatus_APP_CANCELED &&
-			app.Status != common_proto.AppStatus_APP_CANCELING {
+			app.Status != common_proto.AppStatus_APP_CANCELING &&
+			app.Status != common_proto.AppStatus_APP_FAILED {
 			return &common_proto.Empty{}, errors.New("namespace still got running app, can not delete.")
 		}
 	}

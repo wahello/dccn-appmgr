@@ -19,6 +19,7 @@ var addr = "appmgr:50051"
 
 var testing_ns_id string
 var testing_app_id string
+var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjMyMzg5NTEsImp0aSI6IjU1NzNhYjY3LTQ0YTUtNGY2Yi1iMjY2LTY3MzA1MjcyZWEzMSIsImlzcyI6ImFua3IuY29tIn0.-8NckBOtNjuhMC2B4CgYYtK9qmzFa2IGA0zjpfPDFgw"
 
 func TestChartList(t *testing.T) {
 
@@ -33,7 +34,7 @@ func TestChartList(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -62,7 +63,7 @@ func TestChartDetail(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -94,7 +95,7 @@ func TestDownloadChart(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -138,7 +139,7 @@ func TestCreateNamespace(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -172,7 +173,7 @@ func TestNamespaceList(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -200,7 +201,7 @@ func TestCreateApp(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -236,7 +237,7 @@ func TestAppList(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -263,7 +264,7 @@ func TestUpdateNamespace(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -296,7 +297,7 @@ func TestUploadChart(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -330,7 +331,7 @@ func TestUpdateApp(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -367,7 +368,7 @@ func TestDeleteChart(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -398,7 +399,7 @@ func TestAppDetail(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -425,7 +426,7 @@ func TestCancelApp(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -453,7 +454,7 @@ func TestCancelNamespace(t *testing.T) {
 	}(conn)
 	appClient := appmgr.NewAppMgrClient(conn)
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 	tokenContext, cancel := context.WithTimeout(ctx, 10*time.Second)
