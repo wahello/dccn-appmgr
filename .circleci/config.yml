@@ -73,5 +73,8 @@ jobs:
             fi
             kubectl apply -f kubernetes/app_svc.yml
             sleep 30
+            if kubectl get job appmgr-test; then
+              kubectl delete job appmgr-test
+            fi
             kubectl apply -f kubernetes/app_test_patch.yml
             

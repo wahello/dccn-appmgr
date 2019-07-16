@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -568,6 +569,21 @@ type Chart struct {
 	Digest      string       `json:"digest"`
 }
 
+type chartList []*common_proto.Chart
+
+func (c chartList) Len() int {
+	return len(c)
+}
+
+func (c chartList) Swap(i, j int) {
+	c[i], c[j] = c[j], c[i]
+}
+
+func (c chartList) Less(i, j int) bool {
+	data := []string{c[i].ChartName, c[j].ChartName}
+	return sort.StringsAreSorted(data)
+}
+
 // Maintainer is a struct representing a maintainer inside a chart
 type Maintainer struct {
 	Name  string `json:"name"`
@@ -793,7 +809,7 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 		}
 		charts = append(charts, &chart)
 	}
-
+	sort.Sort(chartList(charts))
 	rsp.Charts = charts
 
 	return rsp, nil
