@@ -3,8 +3,6 @@ kind: Job
 metadata:
   name: appmgr-test
 spec:
-  ttlSecondsAfterFinished: 100
-  successfulJobsHistoryLimit: 1
   template:
     spec:
       containers:
