@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: appmgr-test
+spec:
+  template:
+    spec:
+      containers:
+      - name: dccn-appmgr
+        image: 815280425737.dkr.ecr.us-west-2.amazonaws.com/dccn-appmgr:feat
+        imagePullPolicy: IfNotPresent
+        command: ["sh"]
+        args: ["-c", "apk add build-base gcc abuild binutils binutils-doc gcc-doc;cd /go/src/github.com/Ankr-network/dccn-appmgr/handler; go test -v"]
+      restartPolicy: Never
+  backoffLimit: 1
