@@ -52,8 +52,9 @@ type Token struct {
 
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest) (*appmgr.CreateAppResponse, error) {
 
-	userID := common_util.GetUserID(ctx)
-	log.Printf(">>>>>>>>>Debug into CreateApp %+v \nctx: %+v \n", req, ctx)
+	// use team_id as userID
+	_, userID := common_util.GetUserIDAndTeamID(ctx)
+	log.Printf(">>>>>>>>>Debug into CreateApp %+v \nctx: %+v  by uid %s \n", req, ctx, userID)
 
 	if req.App == nil {
 		log.Printf("invalid input: null app provided, %+v \n", req)
@@ -181,8 +182,9 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 // Must return nil for gRPC handler
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID) (*common_proto.Empty, error) {
-	userID := common_util.GetUserID(ctx)
-	log.Printf(">>>>>>>>>Debug into CancelApp: %+v\nctx: %+v \n", req, ctx)
+	// use team_id as userID
+	_, userID := common_util.GetUserIDAndTeamID(ctx)
+	log.Printf(">>>>>>>>>Debug into CancelApp: %+v\nctx: %+v  by uid %s \n", req, ctx, userID)
 
 	if err := checkId(userID, req.AppId); err != nil {
 		log.Println(err.Error())
@@ -255,7 +257,8 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 }
 
 func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty) (*appmgr.AppListResponse, error) {
-	userId := common_util.GetUserID(ctx)
+	// use team_id as userID
+	_, userId := common_util.GetUserIDAndTeamID(ctx)
 	log.Printf(">>>>>>>>>Debug into AppList, ctx: %+v \n", ctx)
 
 	apps, err := p.db.GetAllApp(userId)
@@ -365,7 +368,8 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 	req *appmgr.UpdateAppRequest) (*common_proto.Empty, error) {
 	log.Printf(">>>>>>>>>Debug into UpdateApp: %+v\nctx: %+v\n", req, ctx)
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
 
 	if req.AppDeployment == nil || (req.AppDeployment.ChartDetail == nil ||
 		len(req.AppDeployment.ChartDetail.ChartVer) == 0) && len(req.AppDeployment.AppName) == 0 {
@@ -444,7 +448,9 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty) (*appmgr.AppOverviewResponse, error) {
 	log.Printf(">>>>>>>>>Debug into AppOverview, ctx: %+v\n", ctx)
 	rsp := &appmgr.AppOverviewResponse{}
-	userId := common_util.GetUserID(ctx)
+
+	//use team_id as uid
+	_, userId := common_util.GetUserIDAndTeamID(ctx)
 
 	apps, err := p.db.GetAllApp(userId)
 	if err != nil {
@@ -597,7 +603,9 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 
 	log.Printf(">>>>>>>>>Debug into UploadCharts...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
+
 
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 || len(req.ChartFile) == 0 {
 		log.Printf("invalid input, create failed.\n")
@@ -671,7 +679,8 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 
 	log.Printf(">>>>>>>>>Debug into SaveAsChart...%+v\n ctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
 
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 ||
 		len(req.SaveName) == 0 || len(req.SaveRepo) == 0 || len(req.SaveVer) == 0 {
@@ -770,7 +779,9 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 
 	log.Printf(">>>>>>>>>Debug into ChartList...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
+
 	rsp := &appmgr.ChartListResponse{}
 
 	if len(req.ChartRepo) == 0 {
@@ -821,7 +832,9 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 
 	log.Printf(">>>>>>>>>Debug into ChartDetail... %+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
+
 	rsp := &appmgr.ChartDetailResponse{}
 	if req.Chart == nil || len(req.Chart.ChartName) == 0 || len(req.Chart.ChartRepo) == 0 {
 		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
@@ -911,7 +924,9 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 
 	log.Printf(">>>>>>>>>Debug into DownloadChart...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
+
 	rsp := &appmgr.DownloadChartResponse{}
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 {
 		log.Printf("invalid input: null chart detail provided, %+v \n", req)
@@ -949,7 +964,8 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context,
 
 	log.Printf(">>>>>>>>>Debug into DeleteChart...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
 
 	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
 		req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
@@ -1015,7 +1031,10 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 	req *appmgr.CreateNamespaceRequest) (*appmgr.CreateNamespaceResponse, error) {
 
 	rsp := &appmgr.CreateNamespaceResponse{}
-	uid := common_util.GetUserID(ctx)
+
+	//use team_id as uid
+	_, uid := common_util.GetUserIDAndTeamID(ctx)
+
 	if len(uid) == 0 {
 		return rsp, errors.New("user id not found in context")
 	}
@@ -1083,7 +1102,10 @@ func (p *AppMgrHandler) NamespaceList(ctx context.Context,
 	req *common_proto.Empty) (*appmgr.NamespaceListResponse, error) {
 
 	rsp := &appmgr.NamespaceListResponse{}
-	userId := common_util.GetUserID(ctx)
+
+	//use team_id as uid
+	_, userId := common_util.GetUserIDAndTeamID(ctx)
+
 	if len(userId) == 0 {
 		return rsp, errors.New("user id not found in context")
 	}
@@ -1130,7 +1152,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 	req *appmgr.UpdateNamespaceRequest) (*common_proto.Empty, error) {
 
 	log.Printf(">>>>>>>>>Debug into UpdateNamespace: %+v\nctx: %+v\n", req, ctx)
-	userId := common_util.GetUserID(ctx)
+	_, userId := common_util.GetUserIDAndTeamID(ctx)
 
 	if req.Namespace == nil || (req.Namespace.NsCpuLimit == 0 ||
 		req.Namespace.NsMemLimit == 0 || req.Namespace.NsStorageLimit == 0) {
@@ -1189,7 +1211,9 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 	req *appmgr.DeleteNamespaceRequest) (*common_proto.Empty, error) {
 
-	userId := common_util.GetUserID(ctx)
+	//use team_id as userid
+	_, userId := common_util.GetUserIDAndTeamID(ctx)
+
 	log.Printf(">>>>>>>>>Debug into DeleteNamespace %+v\nctx: %+v\n", req, ctx)
 
 	namespaceRecord, err := p.db.GetNamespace(req.NsId)

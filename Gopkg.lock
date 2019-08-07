@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:70d33a2412f574867d5260a512caf8f631f2686874c1f450deabf6be83001ad6"
+  digest = "1:a9ebba669f261f9eb92ad0ddbad96c70f6b15010cf5950ebcc903b4e6a756bf8"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -11,11 +11,12 @@
     "protos",
     "protos/appmgr/v1/grpc",
     "protos/common",
+    "protos/teammgr/v1/grpc",
     "protos/usermgr/v1/grpc",
     "util",
   ]
   pruneopts = "UT"
-  revision = "e887167b2691a135346b17d4608a9c19b1cbf6a8"
+  revision = "c6a667db8f7714966358b148e050d248a8903cdc"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -115,7 +116,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b5936d38011189ba9b2e5890a38c7ffe0ac7f157eef2ddc0fe752117c50d394d"
+  digest = "1:d2aa096fe6b539afe74dd6ab8e9a160304707f1477b01c637b4bbe20d262a25c"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -127,15 +128,15 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "da137c7871d730100384dbcf36e6f8fa493aef5b"
+  revision = "ca1201d0de80cfde86cb01aea620983605dfe99b"
 
 [[projects]]
   branch = "master"
-  digest = "1:5632b0c4d972da51b5914f09fc5c1a8535e9d8d5d937e95ef83c423a0dd67f13"
+  digest = "1:fdfd985fe7956d77128572032636b5c1b7b58a81acd7089e96923e2f9539c573"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "fae7ac547cb717d141c433a2a173315e216b64c4"
+  revision = "51ab0e2deafac1f46c46ad59cf0921be2f180c3d"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -168,10 +169,10 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "3bdd9d9f5532d75d09efb230bd767d265245cfe5"
+  revision = "fa694d86fc64c7654a660f8908de4e879866748d"
 
 [[projects]]
-  digest = "1:1034e173c33bdc30b8c3e69beedd737002357a890292cec27dedca9408a614e0"
+  digest = "1:89eba2efa76562459d64d23c595954cfb3531b05a2970ca94253b6dc316a8e71"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -211,8 +212,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "1d89a3c832915b2314551c1d2a506874d62e53f7"
-  version = "v1.22.0"
+  revision = "045159ad57f3781d409358e3ade910a018c16b30"
+  version = "v1.22.1"
 
 [[projects]]
   branch = "v2"
@@ -242,7 +243,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "6171873045ffa7bb3caa7207b45135cd1518c736"
+  revision = "162a2dabc72f2baff556efd80add04b6daa662fa"
 
 [[projects]]
   digest = "1:8453e43a8cd9a01812e29b91a9682f238adb9015a105a7fa574f43acc4ca74bc"
@@ -256,8 +257,8 @@
     "pkg/version",
   ]
   pruneopts = "UT"
-  revision = "a8b13cc5ab6a7dbef0a58f5061bcc7c0c61598e7"
-  version = "v2.14.2"
+  revision = "0e7f3b6637f7af8fcfddb3d2941fcc7cbebb0085"
+  version = "v2.14.3"
 
 [solve-meta]
   analyzer-name = "dep"
