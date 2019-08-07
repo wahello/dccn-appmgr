@@ -53,7 +53,7 @@ type Token struct {
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest) (*appmgr.CreateAppResponse, error) {
 
 	// use team_id as userID
-	_, userID := common_util.GetUserIDAndTeamID(ctx)
+	creator, userID := common_util.GetUserIDAndTeamID(ctx)
 	log.Printf(">>>>>>>>>Debug into CreateApp %+v \nctx: %+v  by uid %s \n", req, ctx, userID)
 
 	if req.App == nil {
@@ -124,7 +124,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			}
 		}
 		appDeployment.Namespace.NsId = "ns-" + uuid.New().String()
-		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
+		if err := p.db.CreateNamespace(appDeployment.Namespace, userID, creator); err != nil {
 			log.Println(err.Error())
 			return rsp, err
 		}
@@ -172,7 +172,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 	}
 
-	if err := p.db.CreateApp(appDeployment, userID); err != nil {
+	if err := p.db.CreateApp(appDeployment, userID, creator); err != nil {
 		log.Println(err.Error())
 		return rsp, err
 	}
@@ -1033,7 +1033,7 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 	rsp := &appmgr.CreateNamespaceResponse{}
 
 	//use team_id as uid
-	_, uid := common_util.GetUserIDAndTeamID(ctx)
+	creator, uid := common_util.GetUserIDAndTeamID(ctx)
 
 	if len(uid) == 0 {
 		return rsp, errors.New("user id not found in context")
@@ -1068,7 +1068,7 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 		log.Println("app manager service send CreateNamespace MQ message to dc manager service (api)")
 	}
 
-	if err := p.db.CreateNamespace(req.Namespace, uid); err != nil {
+	if err := p.db.CreateNamespace(req.Namespace, uid, creator); err != nil {
 		log.Println(err.Error())
 		return rsp, err
 	}

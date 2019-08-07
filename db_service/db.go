@@ -33,9 +33,9 @@ type DBService interface {
 	// CancelNamespace sets namespace status CANCEL
 	CancelNamespace(namespaceId string) error
 	// CreateNamespace create new namespace
-	CreateNamespace(namespace *common_proto.Namespace, uid string) error
+	CreateNamespace(namespace *common_proto.Namespace, uid string, creator string) error
 	// Create Creates a new app item if not exits.
-	CreateApp(appDeployment *common_proto.AppDeployment, uid string) error
+	CreateApp(appDeployment *common_proto.AppDeployment, uid string, creator string) error
 	// Update updates collection item
 	Update(collectId string, Id string, update bson.M) error
 	// UpdateApp updates app item
@@ -74,6 +74,7 @@ type AppRecord struct {
 	LastModifiedDate *timestamp.Timestamp
 	ChartDetail      common_proto.ChartDetail
 	ChartUpdating    common_proto.ChartDetail
+	Creator          string  //
 }
 
 // New returns DBService.
@@ -180,13 +181,14 @@ func (p *DB) GetByEvent(event string) (*[]*common_proto.App, error) {
 }
 
 // CreateApp creates a new app deployment item if it not exists
-func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) error {
+func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string, creator string) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	appRecord := AppRecord{}
 	appRecord.ID = appDeployment.AppId
 	appRecord.UID = uid
+	appRecord.Creator = creator
 	appRecord.Name = appDeployment.AppName
 	appRecord.Status = common_proto.AppStatus_APP_DISPATCHING
 	appRecord.Event = common_proto.AppEvent_DISPATCH_APP
@@ -284,6 +286,7 @@ type NamespaceRecord struct {
 	Status               common_proto.NamespaceStatus
 	Event                common_proto.NamespaceEvent
 	Hidden               bool
+	Creator              string
 }
 
 func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
@@ -326,7 +329,7 @@ func (p *DB) GetAllNamespaceByClusterId(clusterId string) ([]NamespaceRecord, er
 	return namespaces, nil
 }
 
-func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) error {
+func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string, creator string) error {
 	session := p.session.Copy()
 	defer session.Close()
 
@@ -334,6 +337,7 @@ func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) erro
 	namespacerecord.ID = namespace.NsId
 	namespacerecord.Name = namespace.NsName
 	namespacerecord.UID = uid
+	namespacerecord.Creator = creator
 	namespacerecord.Status = common_proto.NamespaceStatus_NS_DISPATCHING
 	namespacerecord.Event = common_proto.NamespaceEvent_DISPATCH_NS
 	now := time.Now().Unix()
