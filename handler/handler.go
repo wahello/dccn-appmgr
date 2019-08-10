@@ -4,10 +4,8 @@ import (
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	micro2 "github.com/Ankr-network/dccn-common/ankr-micro"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
+	"sort"
 )
-
-var chartmuseumURL string
-type chartList []*common_proto.Chart
 
 type AppMgrHandler struct {
 	db        db.DBService
@@ -19,6 +17,16 @@ type Token struct {
 	Jti string
 	Iss string
 }
+
+func New(db db.DBService, deployApp *micro2.Publisher) *AppMgrHandler {
+	return &AppMgrHandler{
+		db:        db,
+		deployApp: deployApp,
+	}
+}
+
+var chartmuseumURL string
+type chartList []*common_proto.Chart
 
 // Maintainer is a struct representing a maintainer inside a chart
 type Maintainer struct {
@@ -41,16 +49,6 @@ type Chart struct {
 	Digest      string       `json:"digest"`
 }
 
-func New(db db.DBService, deployApp *micro2.Publisher) *AppMgrHandler {
-	return &AppMgrHandler{
-		db:        db,
-		deployApp: deployApp,
-	}
-}
-
-
-
-/*
 func (c chartList) Len() int {
 	return len(c)
 }
@@ -63,7 +61,7 @@ func (c chartList) Less(i, j int) bool {
 	data := []string{c[i].ChartName, c[j].ChartName}
 	return sort.StringsAreSorted(data)
 }
-*/
+
 
 
 
