@@ -144,7 +144,8 @@ func TestChartDetail(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	} else {
-		t.Logf(" chart list successfully  \n %+v \n\n %+v \n\n %+v  \n ", rsp.ChartVersionDetails, rsp.ReadmeMd, rsp.ValuesYaml)
+		t.Log(" list chart details successfully")
+		// t.Logf(" list chart details successfully  \n %+v \n\n %+v \n\n %+v  \n ", rsp.ChartVersionDetails, rsp.ReadmeMd, rsp.ValuesYaml)
 	}
 }
 
