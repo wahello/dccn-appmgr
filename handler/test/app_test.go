@@ -1,4 +1,4 @@
-package handler
+package test
 
 import (
 	"context"
@@ -193,7 +193,7 @@ func TestAppList(t *testing.T) {
 	if res, err := appClient.AppList(tokenContext, &common_proto.Empty{}); err != nil || len(res.AppReports) < 0 {
 		t.Error(err)
 	} else {
-		t.Logf("app list successfully : \n  %v  \n ", res.AppReports)
+		// t.Logf("app list successfully : \n  %v  \n ", res.AppReports)
 		time.Sleep(2 * time.Second)
 	}
 }
@@ -248,10 +248,10 @@ func TestAppDetail(t *testing.T) {
 		time.Sleep(15 * time.Second)
 	}
 
-	if res, err := appClient.AppDetail(tokenContext, &appmgr.AppID{AppId: testing_app_id}); err != nil {
+	if _, err := appClient.AppDetail(tokenContext, &appmgr.AppID{AppId: testing_app_id}); err != nil {
 		t.Error(err)
 	} else {
-		t.Logf("app id %s detail successfully : \n  %v \n", testing_app_id, res.AppReport)
+		// t.Logf("app id %s detail successfully : \n  %v \n", testing_app_id, res.AppReport)
 		time.Sleep(2 * time.Second)
 	}
 
