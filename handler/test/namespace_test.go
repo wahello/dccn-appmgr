@@ -162,7 +162,7 @@ func TestNamespaceList(t *testing.T) {
 	if rsp, err := appClient.NamespaceList(tokenContext, &common_proto.Empty{}); err != nil || len(rsp.NamespaceReports) < 0 {
 		t.Error(err)
 	} else {
-		t.Logf("namespace list successfully: \n %+v  \n ", rsp.NamespaceReports)
+		// t.Logf("namespace list successfully: \n %+v  \n ", rsp.NamespaceReports)
 		time.Sleep(2 * time.Second)
 	}
 }
