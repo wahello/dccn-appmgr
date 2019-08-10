@@ -33,11 +33,14 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 		return &common_proto.Empty{}, ankr_default.ErrCanceledTwice
 	}
 
+	/*
 	clusterConnection, err := p.db.GetClusterConnection(namespaceRecord.ClusterID)
 	if err != nil || clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
 		log.Println("cluster connection not available, namespace can not be deleted")
 		return nil, errors.New("cluster connection not available, namespace can not be deleted")
 	}
+	*/
+
 
 	apps, err := p.db.GetAllAppByNamespaceId(req.NsId)
 	if err != nil {
