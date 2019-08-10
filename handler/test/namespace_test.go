@@ -214,8 +214,8 @@ func TestUpdateNamespace(t *testing.T) {
 
 	// wait for namespace status changed
 	time.Sleep(15 * time.Second)
-	// nsList1, _ := appClient.NamespaceList(tokenContext, &common_proto.Empty{})
-	// t.Log(nsList1)
+	nsList1, _ := appClient.NamespaceList(tokenContext, &common_proto.Empty{})
+	t.Log(nsList1)
 
 	// case 1: invalid access token
 	if _, err := appClient.UpdateNamespace(tokenContext_invalid,
