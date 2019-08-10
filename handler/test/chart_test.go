@@ -136,7 +136,7 @@ func TestChartDetail(t *testing.T) {
 	}
 
 	// case 2: correct inputs
-	if rsp, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
+	if _, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
 		Chart: &common_proto.Chart{
 			ChartName: "wordpress",
 			ChartRepo: "stable"},
