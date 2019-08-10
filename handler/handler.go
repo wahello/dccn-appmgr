@@ -3,9 +3,11 @@ package handler
 import (
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	micro2 "github.com/Ankr-network/dccn-common/ankr-micro"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 )
 
 var chartmuseumURL string
+type chartList []*common_proto.Chart
 
 type AppMgrHandler struct {
 	db        db.DBService
@@ -46,9 +48,9 @@ func New(db db.DBService, deployApp *micro2.Publisher) *AppMgrHandler {
 	}
 }
 
-/*
-type chartList []*common_proto.Chart
 
+
+/*
 func (c chartList) Len() int {
 	return len(c)
 }
