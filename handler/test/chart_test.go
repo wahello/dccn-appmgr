@@ -136,7 +136,7 @@ func TestChartDetail(t *testing.T) {
 	}
 
 	// case 2: correct inputs
-	if _, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
+	if rsp, err := appClient.ChartDetail(tokenContext, &appmgr.ChartDetailRequest{
 		Chart: &common_proto.Chart{
 			ChartName: "wordpress",
 			ChartRepo: "stable"},
@@ -144,8 +144,7 @@ func TestChartDetail(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	} else {
-		t.Log(" list chart details successfully")
-		// t.Logf(" list chart details successfully  \n %+v \n\n %+v \n\n %+v  \n ", rsp.ChartVersionDetails, rsp.ReadmeMd, rsp.ValuesYaml)
+		t.Logf(" list chart details successfully  \n %+v \n\n %+v \n\n %+v  \n ", rsp.ChartVersionDetails, rsp.ReadmeMd, rsp.ValuesYaml)
 	}
 }
 
