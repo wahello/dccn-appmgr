@@ -11,15 +11,15 @@ import (
 )
 
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID) (*common_proto.Empty, error) {
-	userID := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	log.Printf(">>>>>>>>>Debug into CancelApp: %+v\nctx: %+v \n", req, ctx)
 
-	if err := checkId(userID, req.AppId); err != nil {
+	if err := checkId(teamId, req.AppId); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}
 
-	app, err := p.checkOwner(userID, req.AppId)
+	app, err := p.checkOwner(teamId, req.AppId)
 	if err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err

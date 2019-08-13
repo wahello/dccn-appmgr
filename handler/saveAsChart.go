@@ -21,7 +21,7 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 
 	log.Printf(">>>>>>>>>Debug into SaveAsChart...%+v\n ctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 ||
 		len(req.SaveName) == 0 || len(req.SaveRepo) == 0 || len(req.SaveVer) == 0 {
@@ -34,7 +34,7 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 		return &common_proto.Empty{}, errors.New("chart version is not a valid Semantic Version")
 	}
 
-	querySaveChart, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
+	querySaveChart, err := http.Get(getChartURL(chartmuseumURL+"/api", teamId,
 		req.SaveRepo) + "/" + req.SaveName + "/" + req.SaveVer)
 
 	if err != nil {
@@ -46,7 +46,7 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 		return &common_proto.Empty{}, ankr_default.ErrSaveChartAlreadyExist
 	}
 
-	queryOriginalChart, err := http.Get(getChartURL(chartmuseumURL, uid,
+	queryOriginalChart, err := http.Get(getChartURL(chartmuseumURL, teamId,
 		req.ChartRepo) + "/" + req.ChartName + "-" + req.ChartVer + ".tgz")
 	if err != nil {
 		log.Printf("cannot get chart %s from chartmuseum\nerror: %s\n", req.ChartName, err.Error())
@@ -93,7 +93,7 @@ func (p *AppMgrHandler) SaveAsChart(ctx context.Context, req *appmgr.SaveAsChart
 	}
 
 	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api",
-		uid, req.SaveRepo), tarball)
+		teamId, req.SaveRepo), tarball)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return &common_proto.Empty{}, ankr_default.ErrCannotGetChartTar

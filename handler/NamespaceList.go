@@ -17,13 +17,13 @@ func (p *AppMgrHandler) NamespaceList(ctx context.Context,
 	req *common_proto.Empty) (*appmgr.NamespaceListResponse, error) {
 
 	rsp := &appmgr.NamespaceListResponse{}
-	userId := common_util.GetUserID(ctx)
-	if len(userId) == 0 {
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
+	if len(teamId) == 0 {
 		return rsp, errors.New("user id not found in context")
 	}
 	log.Printf(">>>>>>>>>Debug into NamespaceList, ctx: %+v\n", ctx)
 
-	namespaceRecords, err := p.db.GetAllNamespace(userId)
+	namespaceRecords, err := p.db.GetAllNamespace(teamId)
 	log.Printf("NamespaceMessage  %+v \n", namespaceRecords)
 	if err != nil {
 		log.Println(err.Error())

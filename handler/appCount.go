@@ -10,11 +10,11 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 	req *appmgr.AppCountRequest) (*appmgr.AppCountResponse, error) {
 	log.Printf(">>>>>>>>>Debug into AppCount %+v\nctx: %+v \n", req, ctx)
 	rsp := &appmgr.AppCountResponse{}
-	if len(req.Uid) == 0 || len(req.ClusterId) == 0 {
+	if len(req.TeamId) == 0 || len(req.ClusterId) == 0 {
 		rsp.AppCount = 0
 	}
 
-	appRecord, err := p.db.GetAppCount(req.Uid, req.ClusterId)
+	appRecord, err := p.db.GetAppCount(req.ClusterId, req.ClusterId)
 	if err != nil {
 		log.Println(err.Error())
 		return rsp, err

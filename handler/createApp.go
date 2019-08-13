@@ -16,8 +16,8 @@ import (
 
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest) (*appmgr.CreateAppResponse, error) {
 
-	userID := common_util.GetUserID(ctx)
-	log.Printf(">>>>>>>>>Debug into CreateApp %+v \nctx: %+v \n", req, ctx)
+	creator, teamId := common_util.GetUserIDAndTeamID(ctx)
+	log.Printf(">>>>>>>>>Debug into CreateApp %+v \nctx: %+v , creator %s  team_id %s \n", req, ctx, creator, teamId)
 
 	if req.App == nil {
 		log.Printf("invalid input: null app provided, %+v \n", req)
@@ -87,7 +87,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			}
 		}
 		appDeployment.Namespace.NsId = "ns-" + uuid.New().String()
-		if err := p.db.CreateNamespace(appDeployment.Namespace, userID); err != nil {
+		if err := p.db.CreateNamespace(appDeployment.Namespace, teamId, creator); err != nil {
 			log.Println(err.Error())
 			return rsp, err
 		}
@@ -98,7 +98,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 		return rsp, ankr_default.ErrChartDetailEmpty
 	}
 	appDeployment.ChartDetail = req.App.ChartDetail
-	appChart, err := http.Get(getChartURL(chartmuseumURL, userID,
+	appChart, err := http.Get(getChartURL(chartmuseumURL, teamId,
 		req.App.ChartDetail.ChartRepo) + "/" + req.App.ChartDetail.ChartName + "-" + req.App.ChartDetail.ChartVer + ".tgz")
 	if err != nil {
 		log.Printf("cannot get app chart %s from chartmuseum\nerror: %s\n", req.App.ChartDetail.ChartName, err.Error())
@@ -121,12 +121,14 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	appDeployment.ChartDetail.ChartAppVer = loadedChart.Metadata.AppVersion
 	appDeployment.ChartDetail.ChartIconUrl = loadedChart.Metadata.Icon
 
-	appDeployment.Uid = userID
+	appDeployment.TeamId = teamId
 	if req.App.CustomValues != nil {
 		for _, customValue := range req.App.CustomValues {
 			appDeployment.CustomValues = append(appDeployment.CustomValues, &common_proto.CustomValue{Key: "ankrCustomValues." + customValue.Key, Value: customValue.Value})
 		}
 	}
+
+
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_CREATE,
@@ -139,7 +141,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	}
 	log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 
-	if err := p.db.CreateApp(appDeployment, userID); err != nil {
+	if err := p.db.CreateApp(appDeployment, teamId, creator); err != nil {
 		log.Println(err.Error())
 		return rsp, err
 	}

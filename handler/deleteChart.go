@@ -17,9 +17,9 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context,
 
 	log.Printf(">>>>>>>>>Debug into DeleteChart...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 
-	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid,
+	query, err := http.Get(getChartURL(chartmuseumURL+"/api", teamId,
 		req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode != 200 {
 		log.Printf("chart not exist, delete failed.\n")
@@ -27,7 +27,7 @@ func (p *AppMgrHandler) DeleteChart(ctx context.Context,
 	}
 
 	delReq, err := http.NewRequest("DELETE", getChartURL(chartmuseumURL+"/api",
-		uid, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
+		teamId, req.ChartRepo)+"/"+req.ChartName+"/"+req.ChartVer, nil)
 	if err != nil {
 		log.Printf("cannot create delete chart request, %s \n", err.Error())
 		return &common_proto.Empty{}, ankr_default.ErrCreateRequest

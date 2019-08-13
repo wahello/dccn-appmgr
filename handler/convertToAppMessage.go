@@ -16,7 +16,7 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 		CreationDate:     app.CreationDate,
 		LastModifiedDate: app.LastModifiedDate,
 	}
-	message.Uid = app.UID
+	message.TeamId = app.TeamID
 	message.ChartDetail = &app.ChartDetail
 	message.CustomValues = app.CustomValues
 	namespaceRecord, err := pdb.GetNamespace(app.NamespaceID)

@@ -24,7 +24,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 
 	log.Printf(">>>>>>>>>Debug into ChartDetail... %+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	rsp := &appmgr.ChartDetailResponse{}
 	if req.Chart == nil || len(req.Chart.ChartName) == 0 || len(req.Chart.ChartRepo) == 0 {
 		log.Printf("invalid input: null chart provided, %+v \n", req.Chart)
@@ -32,7 +32,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 	}
 
 	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api",
-		uid, req.Chart.ChartRepo) + "/" + req.Chart.ChartName)
+		teamId, req.Chart.ChartRepo) + "/" + req.Chart.ChartName)
 	if err != nil {
 		log.Printf("cannot get chart details, %s \n", err.Error())
 		return rsp, ankr_default.ErrChartDetailGet
@@ -65,7 +65,7 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 	}
 	rsp.ChartVersionDetails = versionDetails
 
-	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, uid,
+	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL, teamId,
 		req.Chart.ChartRepo)+"/"+req.Chart.ChartName+"-"+req.ShowVersion+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create show version tarball request, %s \n", err.Error())

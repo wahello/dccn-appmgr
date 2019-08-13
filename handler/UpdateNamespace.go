@@ -16,7 +16,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 	req *appmgr.UpdateNamespaceRequest) (*common_proto.Empty, error) {
 
 	log.Printf(">>>>>>>>>Debug into UpdateNamespace: %+v\nctx: %+v\n", req, ctx)
-	userId := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 
 	if req.Namespace == nil || (req.Namespace.NsCpuLimit == 0 ||
 		req.Namespace.NsMemLimit == 0 || req.Namespace.NsStorageLimit == 0) {
@@ -29,7 +29,7 @@ func (p *AppMgrHandler) UpdateNamespace(ctx context.Context,
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}
-	if err := checkNsId(userId, namespaceRecord.UID); err != nil {
+	if err := checkNsId(teamId, namespaceRecord.TeamID); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}

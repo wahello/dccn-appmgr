@@ -21,7 +21,7 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 
 	log.Printf(">>>>>>>>>Debug into UploadCharts...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 || len(req.ChartFile) == 0 {
 		log.Printf("invalid input, create failed.\n")
@@ -33,7 +33,7 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 		return &common_proto.Empty{}, errors.New("chart version is not a valid Semantic Version")
 	}
 
-	query, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
+	query, err := http.Get(getChartURL(chartmuseumURL+"/api", teamId, req.ChartRepo) + "/" + req.ChartName + "/" + req.ChartVer)
 	if query.StatusCode == 200 {
 		log.Printf("chart already exist, create failed.\n")
 		return &common_proto.Empty{}, ankr_default.ErrChartAlreadyExist
@@ -68,7 +68,7 @@ func (p *AppMgrHandler) UploadChart(ctx context.Context, req *appmgr.UploadChart
 		return &common_proto.Empty{}, ankr_default.ErrCannotGetChartTar
 	}
 
-	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo), tarball)
+	chartReq, err := http.NewRequest("POST", getChartURL(chartmuseumURL+"/api", teamId, req.ChartRepo), tarball)
 	if err != nil {
 		log.Printf("cannot open chart tar file, %s \n", err.Error())
 		return &common_proto.Empty{}, ankr_default.ErrCannotGetChartTar

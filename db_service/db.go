@@ -17,25 +17,25 @@ type DBService interface {
 	// GetApp gets a app item by app's id.
 	GetApp(id string) (AppRecord, error)
 	// GetAllApp gets all app related to user id.
-	GetAllApp(userId string) ([]AppRecord, error)
+	GetAllApp(teamId string) ([]AppRecord, error)
 	// GetAllAppByNamespaceId gets all app related to namespace id.
 	GetAllAppByNamespaceId(namespaceId string) ([]AppRecord, error)
 	// GetAppCount gets all app related to user id in specific cluster.
-	GetAppCount(userId string, clusterId string) ([]AppRecord, error)
+	GetAppCount(teamId string, clusterId string) ([]AppRecord, error)
 	// GetNamespace gets a namespace item by namespace's id.
 	GetNamespace(namespaceId string) (NamespaceRecord, error)
 	// GetAllNamespaceByClusterId gets a namespace item by cluster's id.
 	GetAllNamespaceByClusterId(clusterId string) ([]NamespaceRecord, error)
 	// GetAllNamespace gets a namespace item by user's id.
-	GetAllNamespace(userId string) ([]NamespaceRecord, error)
+	GetAllNamespace(teamId string) ([]NamespaceRecord, error)
 	// CancelApp sets app status CANCEL
 	CancelApp(appId string) error
 	// CancelNamespace sets namespace status CANCEL
 	CancelNamespace(namespaceId string) error
 	// CreateNamespace create new namespace
-	CreateNamespace(namespace *common_proto.Namespace, uid string) error
+	CreateNamespace(namespace *common_proto.Namespace, teamId string, creator string) error
 	// Create Creates a new app item if not exits.
-	CreateApp(appDeployment *common_proto.AppDeployment, uid string) error
+	CreateApp(appDeployment *common_proto.AppDeployment, TeamId string, creator string) error
 	// Update updates collection item
 	Update(collectId string, Id string, update bson.M) error
 	// UpdateApp updates app item
@@ -61,21 +61,22 @@ type DB struct {
 }
 
 type AppRecord struct {
-	ID                   string
-	UID                  string
-	Name                 string
-	NamespaceID          string                 // mongodb name is low field
-	Status               common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
-	Event                common_proto.AppEvent
-	Detail               string
-	Report               string
-	Hidden               bool
-	CreationDate         *timestamp.Timestamp
-	LastModifiedDate     *timestamp.Timestamp
-	ChartDetail          common_proto.ChartDetail
-	ChartUpdating        common_proto.ChartDetail
+	ID               string
+	TeamID           string
+	Name             string
+	NamespaceID      string                 // mongodb name is low field
+	Status           common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
+	Event            common_proto.AppEvent
+	Detail           string
+	Report           string
+	Hidden           bool
+	CreationDate     *timestamp.Timestamp
+	LastModifiedDate *timestamp.Timestamp
+	ChartDetail      common_proto.ChartDetail
+	ChartUpdating    common_proto.ChartDetail
 	CustomValues         []*common_proto.CustomValue
 	CustomValuesUpdating []*common_proto.CustomValue
+	Creator          string
 }
 
 // New returns DBService.
@@ -111,14 +112,14 @@ func (p *DB) GetApp(appId string) (AppRecord, error) {
 }
 
 // Get gets app count by userid and clusterid.
-func (p *DB) GetAppCount(userId string, clusterId string) ([]AppRecord, error) {
+func (p *DB) GetAppCount(teamId string, clusterId string) ([]AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
 
 	var apps []AppRecord
 
-	log.Printf("find app count with uid %s clusterid %s", userId, clusterId)
-	if err := p.collection(session, "app").Find(bson.M{"uid": userId}).All(&apps); err != nil {
+	log.Printf("find app count with teamID %s clusterid %s", teamId, clusterId)
+	if err := p.collection(session, "app").Find(bson.M{"uid": teamId}).All(&apps); err != nil {
 		return nil, errors.New(ankr_default.DbError + err.Error())
 	}
 
@@ -141,15 +142,15 @@ func (p *DB) GetAppCount(userId string, clusterId string) ([]AppRecord, error) {
 	return res, nil
 }
 
-func (p *DB) GetAllApp(userId string) ([]AppRecord, error) {
+func (p *DB) GetAllApp(teamId string) ([]AppRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
 
 	var apps []AppRecord
 
-	log.Printf("find apps with uid %s", userId)
+	log.Printf("find apps with teamId %s", teamId)
 
-	if err := p.collection(session, "app").Find(bson.M{"uid": userId}).All(&apps); err != nil {
+	if err := p.collection(session, "app").Find(bson.M{"teamid": teamId}).All(&apps); err != nil {
 		return nil, errors.New(ankr_default.DbError + err.Error())
 	}
 	return apps, nil
@@ -182,13 +183,14 @@ func (p *DB) GetByEvent(event string) (*[]*common_proto.App, error) {
 }
 
 // CreateApp creates a new app deployment item if it not exists
-func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) error {
+func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, teamId string, creator string) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	appRecord := AppRecord{}
 	appRecord.ID = appDeployment.AppId
-	appRecord.UID = uid
+	appRecord.TeamID = teamId
+	appRecord.Creator = creator
 	appRecord.Name = appDeployment.AppName
 	appRecord.Status = common_proto.AppStatus_APP_DISPATCHING
 	appRecord.Event = common_proto.AppEvent_DISPATCH_APP
@@ -274,7 +276,7 @@ type NamespaceRecord struct {
 	ID                   string // short hash of uid+name+cluster_id
 	Name                 string
 	NameUpdating         string
-	UID                  string
+	TeamID               string
 	ClusterID            string //id of cluster
 	ClusterName          string //name of cluster
 	LastModifiedDate     *timestamp.Timestamp
@@ -288,6 +290,7 @@ type NamespaceRecord struct {
 	Status               common_proto.NamespaceStatus
 	Event                common_proto.NamespaceEvent
 	Hidden               bool
+	Creator              string
 }
 
 func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
@@ -302,15 +305,15 @@ func (p *DB) GetNamespace(namespaceId string) (NamespaceRecord, error) {
 	return namespace, err
 }
 
-func (p *DB) GetAllNamespace(userId string) ([]NamespaceRecord, error) {
+func (p *DB) GetAllNamespace(teamId string) ([]NamespaceRecord, error) {
 	session := p.session.Clone()
 	defer session.Close()
 
 	var namespaces []NamespaceRecord
 
-	log.Printf("find apps with uid %s", userId)
+	log.Printf("find apps with teamId %s", teamId)
 
-	if err := p.collection(session, "namespace").Find(bson.M{"uid": userId}).All(&namespaces); err != nil {
+	if err := p.collection(session, "namespace").Find(bson.M{"teamid": teamId}).All(&namespaces); err != nil {
 		return nil, errors.New(ankr_default.DbError + err.Error())
 	}
 	return namespaces, nil
@@ -330,14 +333,15 @@ func (p *DB) GetAllNamespaceByClusterId(clusterId string) ([]NamespaceRecord, er
 	return namespaces, nil
 }
 
-func (p *DB) CreateNamespace(namespace *common_proto.Namespace, uid string) error {
+func (p *DB) CreateNamespace(namespace *common_proto.Namespace, teamId string, creator string) error {
 	session := p.session.Copy()
 	defer session.Close()
 
 	namespacerecord := NamespaceRecord{}
 	namespacerecord.ID = namespace.NsId
 	namespacerecord.Name = namespace.NsName
-	namespacerecord.UID = uid
+	namespacerecord.TeamID = teamId
+	namespacerecord.Creator = creator
 	namespacerecord.Status = common_proto.NamespaceStatus_NS_DISPATCHING
 	namespacerecord.Event = common_proto.NamespaceEvent_DISPATCH_NS
 	now := time.Now().Unix()

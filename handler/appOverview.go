@@ -11,15 +11,15 @@ import (
 func (p *AppMgrHandler) AppOverview(ctx context.Context, req *common_proto.Empty) (*appmgr.AppOverviewResponse, error) {
 	log.Printf(">>>>>>>>>Debug into AppOverview, ctx: %+v\n", ctx)
 	rsp := &appmgr.AppOverviewResponse{}
-	userId := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 
-	apps, err := p.db.GetAllApp(userId)
+	apps, err := p.db.GetAllApp(teamId)
 	if err != nil {
 		log.Println(err.Error())
 		return rsp, err
 	}
 
-	nss, err := p.db.GetAllNamespace(userId)
+	nss, err := p.db.GetAllNamespace(teamId)
 	if err != nil {
 		log.Println(err.Error())
 		return rsp, err

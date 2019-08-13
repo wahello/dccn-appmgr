@@ -5,12 +5,12 @@ import (
 	"errors"
 	)
 
-func checkNsId(userId, nsId string) error {
-	if userId == "" {
+func checkNsId(teamId, nsId string) error {
+	if teamId == "" {
 		return ankr_default.ErrUserNotExist
 	}
 
-	if nsId == "" || nsId != userId {
+	if nsId == "" || nsId != teamId {
 		return errors.New("User does not own this namespace")
 	}
 

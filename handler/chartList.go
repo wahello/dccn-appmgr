@@ -18,13 +18,13 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 
 	log.Printf(">>>>>>>>>Debug into ChartList...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	rsp := &appmgr.ChartListResponse{}
 
 	if len(req.ChartRepo) == 0 {
 		req.ChartRepo = "stable"
 	}
-	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", uid, req.ChartRepo))
+	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", teamId, req.ChartRepo))
 	if err != nil {
 		log.Printf("cannot get chart list, %s \n", err.Error())
 		return rsp, ankr_default.ErrCannotGetChartList

@@ -16,8 +16,8 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 	req *appmgr.CreateNamespaceRequest) (*appmgr.CreateNamespaceResponse, error) {
 
 	rsp := &appmgr.CreateNamespaceResponse{}
-	uid := common_util.GetUserID(ctx)
-	if len(uid) == 0 {
+	creator, teamId := common_util.GetUserIDAndTeamID(ctx)
+	if len(teamId) == 0 {
 		return rsp, errors.New("user id not found in context")
 	}
 	log.Printf(">>>>>>>>>Debug into CreateNamespace: %+v\nctx: %+v\n", req, ctx)
@@ -50,7 +50,7 @@ func (p *AppMgrHandler) CreateNamespace(ctx context.Context,
 		log.Println("app manager service send CreateNamespace MQ message to dc manager service (api)")
 	}
 
-	if err := p.db.CreateNamespace(req.Namespace, uid); err != nil {
+	if err := p.db.CreateNamespace(req.Namespace, teamId, creator); err != nil {
 		log.Println(err.Error())
 		return rsp, err
 	}

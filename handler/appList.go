@@ -12,10 +12,10 @@ import (
 )
 
 func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty) (*appmgr.AppListResponse, error) {
-	userId := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	log.Printf(">>>>>>>>>Debug into AppList, ctx: %+v \n", ctx)
 
-	apps, err := p.db.GetAllApp(userId)
+	apps, err := p.db.GetAllApp(teamId)
 	rsp := &appmgr.AppListResponse{}
 	log.Printf("appMessage  %+v \n", apps)
 	if err != nil {

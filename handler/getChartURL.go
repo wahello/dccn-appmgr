@@ -1,9 +1,9 @@
 package handler
 
-func getChartURL(url string, uid string, repo string) string {
+func getChartURL(url string, teamId string, repo string) string {
 
 	if repo == "user" {
-		url += "/user/" + uid + "/charts"
+		url += "/user/" + teamId + "/charts"
 	} else {
 		url += "/public/" + repo + "/charts"
 	}

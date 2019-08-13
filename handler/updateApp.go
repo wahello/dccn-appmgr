@@ -16,7 +16,7 @@ import (
 func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 	req *appmgr.UpdateAppRequest) (*common_proto.Empty, error) {
 	log.Printf(">>>>>>>>>Debug into UpdateApp: %+v\nctx: %+v\n", req, ctx)
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 
 	if req.AppDeployment == nil || (req.AppDeployment.ChartDetail == nil ||
 		len(req.AppDeployment.ChartDetail.ChartVer) == 0) && len(req.AppDeployment.AppName) == 0 {
@@ -24,12 +24,12 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 		return &common_proto.Empty{}, errors.New("invalid input: no valid update app parameters")
 	}
 
-	if err := checkId(uid, req.AppDeployment.AppId); err != nil {
+	if err := checkId(teamId, req.AppDeployment.AppId); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}
 
-	appReport, err := p.checkOwner(uid, req.AppDeployment.AppId)
+	appReport, err := p.checkOwner(teamId, req.AppDeployment.AppId)
 	if err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
@@ -59,7 +59,7 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 
 	if req.AppDeployment.ChartDetail != nil && len(req.AppDeployment.ChartDetail.ChartVer) > 0 &&
 		req.AppDeployment.ChartDetail.ChartVer != appDeployment.ChartDetail.ChartVer {
-		appChart, err := http.Get(getChartURL(chartmuseumURL, uid,
+		appChart, err := http.Get(getChartURL(chartmuseumURL, teamId,
 			appDeployment.ChartDetail.ChartRepo) + "/" + appDeployment.ChartDetail.ChartName + "-" + req.AppDeployment.ChartDetail.ChartVer + ".tgz")
 		if err != nil {
 			log.Printf("cannot get app chart %s from chartmuseum\nerror: %s\n", req.AppDeployment.ChartDetail.ChartName, err.Error())

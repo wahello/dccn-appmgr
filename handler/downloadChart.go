@@ -17,7 +17,7 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 
 	log.Printf(">>>>>>>>>Debug into DownloadChart...%+v\nctx: %+v\n", req, ctx)
 
-	uid := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	rsp := &appmgr.DownloadChartResponse{}
 	if len(req.ChartName) == 0 || len(req.ChartRepo) == 0 || len(req.ChartVer) == 0 {
 		log.Printf("invalid input: null chart detail provided, %+v \n", req)
@@ -25,7 +25,7 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 	}
 
 	tarballReq, err := http.NewRequest("GET", getChartURL(chartmuseumURL,
-		uid, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
+		teamId, req.ChartRepo)+"/"+req.ChartName+"-"+req.ChartVer+".tgz", nil)
 	if err != nil {
 		log.Printf("cannot create download tarball request, %s \n", err.Error())
 		return rsp, ankr_default.ErrCreateRequest

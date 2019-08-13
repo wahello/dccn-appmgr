@@ -15,7 +15,7 @@ import (
 func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 	req *appmgr.DeleteNamespaceRequest) (*common_proto.Empty, error) {
 
-	userId := common_util.GetUserID(ctx)
+	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	log.Printf(">>>>>>>>>Debug into DeleteNamespace %+v\nctx: %+v\n", req, ctx)
 
 	namespaceRecord, err := p.db.GetNamespace(req.NsId)
@@ -24,7 +24,7 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 		return &common_proto.Empty{}, err
 	}
 
-	if err := checkNsId(userId, namespaceRecord.UID); err != nil {
+	if err := checkNsId(teamId, namespaceRecord.TeamID); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}

@@ -6,16 +6,16 @@ import (
 	"log"
 )
 
-func (p *AppMgrHandler) checkOwner(userId, appId string) (*common_proto.AppReport, error) {
+func (p *AppMgrHandler) checkOwner(teamId, appId string) (*common_proto.AppReport, error) {
 	appRecord, err := p.db.GetApp(appId)
 
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("appid : %s user id -%s-   user_token_id -%s-  ", appId, appRecord.UID, userId)
+	log.Printf("appid : %s user id -%s-   user_token_id -%s-  ", appId, appRecord.TeamID, teamId)
 
-	if appRecord.UID != userId {
+	if appRecord.TeamID != teamId {
 		return nil, ankr_default.ErrUserNotOwn
 	}
 
