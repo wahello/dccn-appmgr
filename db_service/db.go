@@ -61,19 +61,21 @@ type DB struct {
 }
 
 type AppRecord struct {
-	ID               string
-	UID              string
-	Name             string
-	NamespaceID      string                 // mongodb name is low field
-	Status           common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
-	Event            common_proto.AppEvent
-	Detail           string
-	Report           string
-	Hidden           bool
-	CreationDate     *timestamp.Timestamp
-	LastModifiedDate *timestamp.Timestamp
-	ChartDetail      common_proto.ChartDetail
-	ChartUpdating    common_proto.ChartDetail
+	ID                   string
+	UID                  string
+	Name                 string
+	NamespaceID          string                 // mongodb name is low field
+	Status               common_proto.AppStatus // 1 new 2 running 3. done 4 cancelling 5.canceled 6. updating 7. updateFailed
+	Event                common_proto.AppEvent
+	Detail               string
+	Report               string
+	Hidden               bool
+	CreationDate         *timestamp.Timestamp
+	LastModifiedDate     *timestamp.Timestamp
+	ChartDetail          common_proto.ChartDetail
+	ChartUpdating        common_proto.ChartDetail
+	CustomValues         []*common_proto.CustomValue
+	CustomValuesUpdating []*common_proto.CustomValue
 }
 
 // New returns DBService.
@@ -195,6 +197,7 @@ func (p *DB) CreateApp(appDeployment *common_proto.AppDeployment, uid string) er
 	now := time.Now().Unix()
 	appRecord.LastModifiedDate = &timestamp.Timestamp{Seconds: now}
 	appRecord.CreationDate = &timestamp.Timestamp{Seconds: now}
+	appRecord.CustomValues = appDeployment.CustomValues
 	err := p.collection(session, "app").Insert(appRecord)
 	if err != nil {
 		return errors.New(ankr_default.DbError + err.Error())
@@ -229,6 +232,7 @@ func (p *DB) UpdateApp(appDeployment *common_proto.AppDeployment) error {
 	now := time.Now().Unix()
 	fields["lastmodifieddate"] = &timestamp.Timestamp{Seconds: now}
 	fields["chartupdating"] = appDeployment.ChartDetail
+	fields["customvaluesupdating"] = appDeployment.CustomValues
 
 	err := p.collection(session, "app").Update(
 		bson.M{"id": appDeployment.AppId}, bson.M{"$set": fields})

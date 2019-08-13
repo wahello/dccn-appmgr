@@ -3,16 +3,19 @@ package handler
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"encoding/json"
+	"errors"
+	"io/ioutil"
+	"log"
+	"net/http"
+
+	chartutil "k8s.io/helm/pkg/chartutil"
+
 	ankr_default "github.com/Ankr-network/dccn-common/protos"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
-	"context"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"errors"
 )
 
 // ChartDetail will return a list of specific chart versions from the chartmuseum repo
@@ -101,6 +104,24 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 
 	rsp.ReadmeMd = tarf[req.Chart.ChartName+"/README.md"]
 	rsp.ValuesYaml = tarf[req.Chart.ChartName+"/values.yaml"]
+	values, err := chartutil.ReadValues([]byte(rsp.ValuesYaml))
+	if err != nil {
+		log.Printf("parse values.yaml error: %s\n%+v\n", err, rsp.ValuesYaml)
+	}
+	if values != nil {
+		ankrCustomValues, err := values.Table("ankrCustomValues")
+		if err != nil {
+			log.Printf("get ankrCustomValue from values.yaml error: %s\n%+v\n", err, ankrCustomValues)
+		}
+		if ankrCustomValues != nil {
+			ankrCustomKeys := make([]*common_proto.CustomValue, 0, len(ankrCustomValues))
+			for key := range ankrCustomValues {
+				ankrCustomKeys = append(ankrCustomKeys, &common_proto.CustomValue{Key: key, Value: ""})
+			}
+			log.Printf("ankrCustomKeys: %+v\n", ankrCustomKeys)
+			rsp.CustomValues = ankrCustomKeys
+		}
+	}
 
 	return rsp, nil
 }

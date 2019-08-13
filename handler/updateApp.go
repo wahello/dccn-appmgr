@@ -1,15 +1,16 @@
 package handler
 
 import (
+	"context"
+	"errors"
+	"log"
+	"net/http"
+
 	ankr_default "github.com/Ankr-network/dccn-common/protos"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
-	"context"
 	"gopkg.in/mgo.v2/bson"
-	"log"
-	"net/http"
-	"errors"
 )
 
 func (p *AppMgrHandler) UpdateApp(ctx context.Context,
@@ -70,7 +71,12 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 		}
 
 		appDeployment.ChartDetail.ChartVer = req.AppDeployment.ChartDetail.ChartVer
-
+		if appDeployment.CustomValues != nil {
+			var customValues []*common_proto.CustomValue
+			for _, customValue := range appDeployment.CustomValues {
+				customValues = append(customValues, &common_proto.CustomValue{Key: "ankrCustomValues." + customValue.Key, Value: customValue.Value})
+			}
+		}
 		event := common_proto.DCStream{
 			OpType:    common_proto.DCOperation_APP_UPDATE,
 			OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},
@@ -90,4 +96,3 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 
 	return &common_proto.Empty{}, nil
 }
-

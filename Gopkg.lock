@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:c1baa5f471081cdcedd035b3b6aa56e058f445d2037faf432e09730c21c899dc"
+  digest = "1:95d123381f600ad468c8fe2fe6bb955d8674e9a4aa60f3d0c721228737d0c413"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -16,7 +16,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "2c8f945a90d4dacb115294c7fff027def77ec0f1"
+  revision = "9bfa18e2635e627861bbb93170951a21859f5ccd"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -132,11 +132,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fdfd985fe7956d77128572032636b5c1b7b58a81acd7089e96923e2f9539c573"
+  digest = "1:41f8c21bac9c11191bb5f9101777633416231ea80e382b40ec6b1ca738ccc347"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "51ab0e2deafac1f46c46ad59cf0921be2f180c3d"
+  revision = "4e8604ab3aff7fe78f7fc5aabae5194a3a190cdd"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"

@@ -62,6 +62,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 				case common_proto.AppEvent_UPDATE_APP_SUCCEED:
 					update["status"] = common_proto.AppStatus_APP_RUNNING
 					update["chartdetail"] = appRecord.ChartUpdating
+					update["customvalues"] = appRecord.CustomValuesUpdating
 				case common_proto.AppEvent_UPDATE_APP_FAILED:
 					update["status"] = common_proto.AppStatus_APP_UPDATE_FAILED
 				}

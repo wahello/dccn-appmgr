@@ -47,13 +47,25 @@ func main() {
 	appDeployment := common_proto.AppDeployment{}
 	appDeployment.AppId = os.Args[1]
 	log.Printf("APP ID: %s", appDeployment.AppId)
-	appDeployment.AppName = "wordpress_test1"
+	appDeployment.AppName = "zilliqa_test2"
 	appDeployment.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",
-		ChartName: "wordpress",
-		ChartVer:  "5.7.1",
+		ChartName: "zilliqa",
+		ChartVer:  "0.1.0",
 	}
-
+	var customValues []*common_proto.CustomValue
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key: "seed_port"
+		Value: "32138"
+	})
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key: "pubkey"
+		Value: "034D4483544DB5BF71D4C91E9B920855B2577B8B54A0B30AC60EB81A5260C583A4"
+	})
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key: "prikey"
+		Value: "F2BA7F7C9582D1CEE5423DE15017C386D63E6796730BAC9673A5B73E3CCF2984"
+	})
 	if _, err := appClient.UpdateApp(tokenContext, &appmgr.UpdateAppRequest{AppDeployment: &appDeployment}); err != nil {
 		log.Fatal(err)
 	} else {

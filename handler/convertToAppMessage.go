@@ -1,12 +1,12 @@
 package handler
 
 import (
-	db "github.com/Ankr-network/dccn-appmgr/db_service"
-	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	"log"
 	"strings"
-)
 
+	db "github.com/Ankr-network/dccn-appmgr/db_service"
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
+)
 
 func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppReport {
 	message := common_proto.AppDeployment{}
@@ -18,6 +18,7 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 	}
 	message.Uid = app.UID
 	message.ChartDetail = &app.ChartDetail
+	message.CustomValues = app.CustomValues
 	namespaceRecord, err := pdb.GetNamespace(app.NamespaceID)
 	if err != nil {
 		log.Printf("get namespace record failed, %s", err.Error())

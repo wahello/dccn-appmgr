@@ -43,11 +43,11 @@ func main() {
 	defer cancel()
 	//
 	app := common_proto.App{}
-	app.AppName = "wordpress_test"
+	app.AppName = "zilliqa_test"
 	app.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",
-		ChartName: "wordpress",
-		ChartVer:  "5.6.2",
+		ChartName: "zilliqa",
+		ChartVer:  "0.1.0",
 	}
 	app.NamespaceData = &common_proto.App_Namespace{
 		Namespace: &common_proto.Namespace{
@@ -57,6 +57,21 @@ func main() {
 			NsStorageLimit: 50000,
 		},
 	}
+
+	var customValues []*common_proto.CustomValue
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key:   "ankrCustomValues.seed_port",
+		Value: "32137",
+	})
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key:   "ankrCustomValues.pubkey",
+		Value: "03AB2115FA0FF77359B38FD14883B16412C7BF652EAD2C218C4B4F56F1ADFB3B89",
+	})
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key:   "ankrCustomValues.prikey",
+		Value: "8F0FA8FD1849DA7A2B6B02404B60D3BC3D723603C4CAEDEE086B57F28B90798C",
+	})
+	app.CustomValues = customValues
 
 	if rsp, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app}); err != nil {
 		log.Fatal(err)

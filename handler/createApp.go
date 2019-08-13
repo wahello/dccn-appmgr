@@ -1,16 +1,17 @@
 package handler
 
 import (
+	"context"
+	"errors"
+	"log"
+	"net/http"
+
 	ankr_default "github.com/Ankr-network/dccn-common/protos"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
 	"github.com/google/uuid"
 	"k8s.io/helm/pkg/chartutil"
-	"log"
-	"net/http"
-	"errors"
-	"context"
 )
 
 func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequest) (*appmgr.CreateAppResponse, error) {
@@ -121,6 +122,11 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	appDeployment.ChartDetail.ChartIconUrl = loadedChart.Metadata.Icon
 
 	appDeployment.Uid = userID
+	if req.App.CustomValues != nil {
+		for _, customValue := range req.App.CustomValues {
+			appDeployment.CustomValues = append(appDeployment.CustomValues, &common_proto.CustomValue{Key: "ankrCustomValues." + customValue.Key, Value: customValue.Value})
+		}
+	}
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_CREATE,
@@ -130,9 +136,8 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 	if err := p.deployApp.Publish(&event); err != nil {
 		log.Println(ankr_default.ErrPublish)
 		return rsp, ankr_default.ErrPublish
-	} else {
-		log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 	}
+	log.Println("app manager service send CreateApp MQ message to dc manager service (api)")
 
 	if err := p.db.CreateApp(appDeployment, userID); err != nil {
 		log.Println(err.Error())
