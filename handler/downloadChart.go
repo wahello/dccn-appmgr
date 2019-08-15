@@ -1,14 +1,17 @@
 package handler
 
 import (
-	ankr_default "github.com/Ankr-network/dccn-common/protos"
-	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
-	common_util "github.com/Ankr-network/dccn-common/util"
+	"bytes"
 	"context"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"errors"
+
+	ankr_default "github.com/Ankr-network/dccn-common/protos"
+	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
+	common_util "github.com/Ankr-network/dccn-common/util"
+	chartutil "k8s.io/helm/pkg/chartutil"
 )
 
 // DownloadChart will return a specific chart tarball from the specific chartmuseum repo
@@ -42,6 +45,14 @@ func (p *AppMgrHandler) DownloadChart(ctx context.Context,
 	if err != nil {
 		log.Printf("cannot read chart tarball, %s \n", err.Error())
 		return rsp, ankr_default.ErrCannotReadDownload
+	}
+
+	chartFileReader := bytes.NewReader(chartFile)
+
+	if _, err = chartutil.LoadArchive(chartFileReader); err != nil {
+		log.Printf("cannot load chart from the http get response from chartmuseum , %s \nerror: %s",
+			req.ChartName, err.Error())
+		return rsp, ankr_default.ErrChartMuseumGet
 	}
 
 	rsp.ChartFile = chartFile

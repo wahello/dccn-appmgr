@@ -55,6 +55,11 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 	rsp.ChartName = req.Chart.ChartName
 	rsp.ChartRepo = req.Chart.ChartRepo
 
+	if len(data) == 0 {
+		return rsp, nil
+	}
+	rsp.ChartDescription = data[0].Description
+
 	versionDetails := make([]*common_proto.ChartVersionDetail, 0)
 	for _, v := range data {
 		versiondetail := common_proto.ChartVersionDetail{

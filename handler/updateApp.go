@@ -11,6 +11,7 @@ import (
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
 	"gopkg.in/mgo.v2/bson"
+	chartutil "k8s.io/helm/pkg/chartutil"
 )
 
 func (p *AppMgrHandler) UpdateApp(ctx context.Context,
@@ -69,14 +70,22 @@ func (p *AppMgrHandler) UpdateApp(ctx context.Context,
 			log.Printf("invalid input: app chart not exist \n")
 			return &common_proto.Empty{}, ankr_default.ErrChartNotExist
 		}
-
+		loadedChart, err := chartutil.LoadArchive(appChart.Body)
+		if err != nil {
+			log.Printf("cannot load chart from the http get response from chartmuseum , %s \nerror: %s",
+				req.AppDeployment.ChartDetail.ChartName, err.Error())
+			return &common_proto.Empty{}, ankr_default.ErrChartMuseumGet
+		}
+		appDeployment.ChartDetail.ChartDescription = loadedChart.Metadata.Description
 		appDeployment.ChartDetail.ChartVer = req.AppDeployment.ChartDetail.ChartVer
+
 		if appDeployment.CustomValues != nil {
 			var customValues []*common_proto.CustomValue
 			for _, customValue := range appDeployment.CustomValues {
 				customValues = append(customValues, &common_proto.CustomValue{Key: "ankrCustomValues." + customValue.Key, Value: customValue.Value})
 			}
 		}
+
 		event := common_proto.DCStream{
 			OpType:    common_proto.DCOperation_APP_UPDATE,
 			OpPayload: &common_proto.DCStream_AppDeployment{AppDeployment: appDeployment},

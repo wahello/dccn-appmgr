@@ -120,6 +120,7 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 
 	appDeployment.ChartDetail.ChartAppVer = loadedChart.Metadata.AppVersion
 	appDeployment.ChartDetail.ChartIconUrl = loadedChart.Metadata.Icon
+	appDeployment.ChartDetail.ChartDescription = loadedChart.Metadata.Description
 
 	appDeployment.TeamId = teamId
 	if req.App.CustomValues != nil {
@@ -127,8 +128,6 @@ func (p *AppMgrHandler) CreateApp(ctx context.Context, req *appmgr.CreateAppRequ
 			appDeployment.CustomValues = append(appDeployment.CustomValues, &common_proto.CustomValue{Key: "ankrCustomValues." + customValue.Key, Value: customValue.Value})
 		}
 	}
-
-
 
 	event := common_proto.DCStream{
 		OpType:    common_proto.DCOperation_APP_CREATE,

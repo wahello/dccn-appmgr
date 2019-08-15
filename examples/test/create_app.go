@@ -60,15 +60,15 @@ func main() {
 
 	var customValues []*common_proto.CustomValue
 	customValues = append(customValues, &common_proto.CustomValue{
-		Key:   "ankrCustomValues.seed_port",
+		Key:   "seed_port",
 		Value: "32137",
 	})
 	customValues = append(customValues, &common_proto.CustomValue{
-		Key:   "ankrCustomValues.pubkey",
+		Key:   "pubkey",
 		Value: "03AB2115FA0FF77359B38FD14883B16412C7BF652EAD2C218C4B4F56F1ADFB3B89",
 	})
 	customValues = append(customValues, &common_proto.CustomValue{
-		Key:   "ankrCustomValues.prikey",
+		Key:   "prikey",
 		Value: "8F0FA8FD1849DA7A2B6B02404B60D3BC3D723603C4CAEDEE086B57F28B90798C",
 	})
 	app.CustomValues = customValues
