@@ -117,14 +117,15 @@ func (p *AppMgrHandler) ChartDetail(ctx context.Context,
 		ankrCustomValues, err := values.Table("ankrCustomValues")
 		if err != nil {
 			log.Printf("get ankrCustomValue from values.yaml error: %s\n%+v\n", err, ankrCustomValues)
-		}
-		if ankrCustomValues != nil {
-			ankrCustomKeys := make([]*common_proto.CustomValue, 0, len(ankrCustomValues))
-			for key := range ankrCustomValues {
-				ankrCustomKeys = append(ankrCustomKeys, &common_proto.CustomValue{Key: key, Value: ""})
+		} else {
+			if ankrCustomValues != nil {
+				ankrCustomKeys := make([]*common_proto.CustomValue, 0, len(ankrCustomValues))
+				for key := range ankrCustomValues {
+					ankrCustomKeys = append(ankrCustomKeys, &common_proto.CustomValue{Key: key, Value: ""})
+				}
+				log.Printf("ankrCustomKeys: %+v\n", ankrCustomKeys)
+				rsp.CustomValues = ankrCustomKeys
 			}
-			log.Printf("ankrCustomKeys: %+v\n", ankrCustomKeys)
-			rsp.CustomValues = ankrCustomKeys
 		}
 	}
 
