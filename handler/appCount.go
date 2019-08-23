@@ -14,7 +14,7 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 		rsp.AppCount = 0
 	}
 
-	appRecord, err := p.db.GetAppCount(req.ClusterId, req.ClusterId)
+	appRecord, err := p.db.GetAppCount(req.TeamId, req.ClusterId)
 	if err != nil {
 		log.Println(err.Error())
 		return rsp, err
