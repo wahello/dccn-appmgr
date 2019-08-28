@@ -152,7 +152,7 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 
 	case *common_proto.DCStream_DataCenter:
 		dc := stream.GetDataCenter()
-		if dc.DcHeartbeatReport != nil || dc.DcHeartbeatReport.MetricsRaw != nil {
+		if dc.DcHeartbeatReport != nil && dc.DcHeartbeatReport.MetricsRaw != nil {
 			if _, err := p.db.GetClusterConnection(dc.DcId); err == mgo.ErrNotFound {
 				if err = p.db.CreateClusterConnection(dc.DcId, dc.DcStatus, dc.DcHeartbeatReport.MetricsRaw); err != nil {
 					log.Printf("Create cluster connection failed %v", err)
