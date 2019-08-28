@@ -26,14 +26,22 @@ type DBService interface {
 	GetRunningAppsByNamespaceId(namespaceId string) ([]AppRecord, error)
 	// GetRunningAppsByClusterID get running app related to cluster id
 	GetRunningAppsByClusterID(clusterID string) ([]AppRecord, error)
+	// CountRunningAppsByClusterID count running app related to cluster id
+	CountRunningAppsByClusterID(clusterID string) (int, error)
+	// CountRunningApps count all running apps
+	CountRunningApps() (int, error)
 	// GetRunningAppsByTeamIDAndClusterID gets all app related to user id in specific cluster.
 	GetRunningAppsByTeamIDAndClusterID(teamId string, clusterId string) ([]AppRecord, error)
 	// GetNamespace gets a namespace item by namespace's id.
 	GetNamespace(namespaceId string) (NamespaceRecord, error)
 	// GetRunningNamespacesByClusterId gets a namespace item by cluster's id.
 	GetRunningNamespacesByClusterId(clusterId string) ([]NamespaceRecord, error)
+	// CountRunningNamespaces count running namespace related to cluster id
+	CountRunningNamespacesByClusterID(clusterID string) (int, error)
 	// GetRunningNamespaces gets running namespace items by teamID
 	GetRunningNamespaces(teamId string) ([]NamespaceRecord, error)
+	// CountRunningNamespaces count all running namespace
+	CountRunningNamespaces() (int, error)
 	// GetAllNamespaces get all namespace items by teamID
 	GetAllNamespaces(teamID string) ([]NamespaceRecord, error)
 	// GetRunningNamespacesByTeamIDAndClusterID get running namespace related to teamId & clusterId
@@ -92,6 +100,64 @@ func New(conf dbcommon.Config) (*DB, error) {
 
 func (p *DB) collection(session *mgo.Session, collection string) *mgo.Collection {
 	return session.DB(p.dbName).C(collection)
+}
+
+func (p *DB) CountRunningAppsByClusterID(clusterID string) (int, error) {
+	nss, err := p.GetRunningNamespacesByClusterId(clusterID)
+	if err != nil {
+		return 0, err
+	}
+
+	nsids := make([]string, len(nss))
+	for i := range nss {
+		nsids[i] = nss[i].ID
+	}
+
+	session := p.session.Clone()
+	defer session.Close()
+
+	count, err := p.collection(session, "app").Find(bson.M{"namespaceid": bson.M{"$in": nsids}, "status": common_proto.AppStatus_APP_RUNNING}).Count()
+	if err != nil {
+		return 0, errors.New(ankr_default.DbError + err.Error())
+	}
+
+	return count, nil
+}
+
+func (p *DB) CountRunningApps() (int, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	count, err := p.collection(session, "app").Find(bson.M{"status": common_proto.AppStatus_APP_RUNNING}).Count()
+	if err != nil {
+		return 0, errors.New(ankr_default.DbError + err.Error())
+	}
+
+	return count, nil
+}
+
+func (p *DB) CountRunningNamespacesByClusterID(clusterID string) (int, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	count, err := p.collection(session, "namespace").Find(bson.M{"clusterid": clusterID, "status": common_proto.NamespaceStatus_NS_RUNNING}).Count()
+	if err != nil {
+		return 0, errors.New(ankr_default.DbError + err.Error())
+	}
+
+	return count, nil
+}
+
+func (p *DB) CountRunningNamespaces() (int, error) {
+	session := p.session.Clone()
+	defer session.Close()
+
+	count, err := p.collection(session, "namespace").Find(bson.M{"clusterid": bson.M{"$ne": ""}, "status": common_proto.NamespaceStatus_NS_RUNNING}).Count()
+	if err != nil {
+		return 0, errors.New(ankr_default.DbError + err.Error())
+	}
+
+	return count, nil
 }
 
 // Get gets app item by id.
@@ -410,12 +476,19 @@ func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DC
 	log.Printf("UpdateByHeartbeatMetrics %+v", metrics)
 
 	for nsID, r := range metrics.NsUsed {
-		if err := p.collection(session, "namespace").Update(bson.M{"id": nsID, "status": bson.M{"$nin": []common_proto.NamespaceStatus{common_proto.NamespaceStatus_NS_CANCELING, common_proto.NamespaceStatus_NS_DISPATCHING}}}, bson.M{"$set": bson.M{
-			"cpuusage":     r.CPU,
-			"memusage":     r.Memory,
-			"storageusage": r.Storage,
-			"status":       common_proto.NamespaceStatus_NS_RUNNING,
-		}}); err != nil {
+		if err := p.collection(session, "namespace").Update(bson.M{
+			"id": nsID,
+			"status": bson.M{
+				"$in": []common_proto.NamespaceStatus{common_proto.NamespaceStatus_NS_FAILED, common_proto.NamespaceStatus_NS_UNAVAILABLE, common_proto.NamespaceStatus_NS_RUNNING},
+			},
+		}, bson.M{
+			"$set": bson.M{
+				"cpuusage":     r.CPU,
+				"memusage":     r.Memory,
+				"storageusage": r.Storage,
+				"status":       common_proto.NamespaceStatus_NS_RUNNING,
+			},
+		}); err != nil {
 			log.Printf("update ns %s by metrics %+v error: %+v", nsID, r, err)
 		}
 	}
@@ -523,21 +596,21 @@ func (p *DB) CreateClusterConnection(clusterID string, clusterStatus common_prot
 
 func (p *DB) GetRunningAppsByClusterID(clusterID string) ([]AppRecord, error) {
 	rsp := make([]AppRecord, 0)
-	nss, err := p.GetRunningAppsByClusterID(clusterID)
+	nss, err := p.GetRunningNamespacesByClusterId(clusterID)
 	if err != nil {
 		return rsp, err
 	}
 
 	nsids := make([]string, len(nss))
 	for i := range nss {
-		nsids[i] = nss[i].NamespaceID
+		nsids[i] = nss[i].ID
 	}
 
 	session := p.session.Clone()
 	defer session.Close()
 
 	var apps []AppRecord
-	if err := p.collection(session, "app").Find(bson.M{"namespaceid": bson.M{"$in": nsids}}).All(&apps); err != nil {
+	if err := p.collection(session, "app").Find(bson.M{"namespaceid": bson.M{"$in": nsids}, "status": common_proto.AppStatus_APP_RUNNING}).All(&apps); err != nil {
 		return rsp, errors.New(ankr_default.DbError + err.Error())
 	}
 

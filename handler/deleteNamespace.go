@@ -39,7 +39,13 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 			log.Printf("mark ns %s to canceled error: %v", req.NsId, err)
 			return &common_proto.Empty{}, err
 		} else {
-			if changeInfo, err := p.db.UpdateMany("app", bson.M{"namespaceid": req.NsId, "hidden": bson.M{"$ne": true}}, bson.M{"hidden": true}); err != nil {
+			if changeInfo, err := p.db.UpdateMany("app", bson.M{
+				"namespaceid": req.NsId,
+				"hidden":      bson.M{"$ne": true},
+			}, bson.M{
+				"$set": bson.M{"hidden": true},
+			}); err != nil {
+
 				return &common_proto.Empty{}, err
 			} else {
 				log.Printf("hide app of namespace %s, changeInfo:%+v", req.NsId, changeInfo)
