@@ -1,9 +1,9 @@
 package handler
 
 import (
+	"context"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"log"
-	"context"
 )
 
 func (p *AppMgrHandler) AppCount(ctx context.Context,
@@ -14,13 +14,13 @@ func (p *AppMgrHandler) AppCount(ctx context.Context,
 		rsp.AppCount = 0
 	}
 
-	appRecord, err := p.db.GetAppCount(req.TeamId, req.ClusterId)
+	apps, err := p.db.GetRunningAppsByTeamIDAndClusterID(req.TeamId, req.ClusterId)
 	if err != nil {
 		log.Println(err.Error())
 		return rsp, err
 	}
 
-	rsp.AppCount = uint32(len(appRecord))
+	rsp.AppCount = uint32(len(apps))
 
 	return rsp, nil
 }

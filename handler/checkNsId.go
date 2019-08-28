@@ -1,17 +1,17 @@
 package handler
 
 import (
-	ankr_default "github.com/Ankr-network/dccn-common/protos"
 	"errors"
-	)
+	ankr_default "github.com/Ankr-network/dccn-common/protos"
+)
 
-func checkNsId(teamId, nsId string) error {
+func checkNsId(teamId, nsTeamID string) error {
 	if teamId == "" {
 		return ankr_default.ErrUserNotExist
 	}
 
-	if nsId == "" || nsId != teamId {
-		return errors.New("User does not own this namespace")
+	if nsTeamID == "" || nsTeamID != teamId {
+		return errors.New(ankr_default.ArgumentError + "User does not own this namespace")
 	}
 
 	return nil

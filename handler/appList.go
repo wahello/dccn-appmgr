@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
@@ -8,14 +9,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"time"
-	"context"
 )
 
 func (p *AppMgrHandler) AppList(ctx context.Context, req *common_proto.Empty) (*appmgr.AppListResponse, error) {
 	_, teamId := common_util.GetUserIDAndTeamID(ctx)
 	log.Printf(">>>>>>>>>Debug into AppList, ctx: %+v \n", ctx)
 
-	apps, err := p.db.GetAllApp(teamId)
+	apps, err := p.db.GetAllApps(teamId)
 	rsp := &appmgr.AppListResponse{}
 	log.Printf("appMessage  %+v \n", apps)
 	if err != nil {

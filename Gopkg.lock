@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:7119d26a08ba92c91d03f4ba90ee421bfdbfce0c91dca1e6060288efcf8b70fe"
+  digest = "1:45240c49db8231da7c09c0b586ff9f2aed62f4b189a4929174e8e943a31f2a07"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -16,7 +16,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "ed7a9111cff0290546d9003c575e80f95e30bb68"
+  revision = "5b88fe382203eaf97f60ed1eb891eff8e4fe82de"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -108,11 +108,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d6bb6f3240a488ffe5bb6952b513569d009927dcb20ff94885f87b76cef2b698"
+  digest = "1:523f246a749e007dff099d654ec713cf94cd0f441bce9072ceaa1af62722d225"
   name = "github.com/streadway/amqp"
   packages = ["."]
   pruneopts = "UT"
-  revision = "75d898a42a940fbc854dfd1a4199eabdc00cf024"
+  revision = "eade30b20f1d77d4ab7a3c72d5e3a3331b6443ba"
 
 [[projects]]
   branch = "master"
@@ -169,7 +169,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "fa694d86fc64c7654a660f8908de4e879866748d"
+  revision = "24fa4b261c55da65468f2abfdae2b024eef27dfb"
 
 [[projects]]
   digest = "1:4f01d2d6492b8926086b09690d0d64244d90ebc6dee6cf3c2277431b78709989"
@@ -217,7 +217,7 @@
 
 [[projects]]
   branch = "v2"
-  digest = "1:988de7520a09024d5d94cd99bd545afbf194893994ec759b1cda0a0bbb6adb80"
+  digest = "1:4af24de1cba937fb5ef082e8860a47fd46282e6863c01930359368ee121e3114"
   name = "gopkg.in/mgo.v2"
   packages = [
     ".",
@@ -227,7 +227,7 @@
     "internal/scram",
   ]
   pruneopts = "UT"
-  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
+  revision = "a6b53ec6cb22a3699387a57a161566f9402ee85b"
 
 [[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
@@ -243,7 +243,7 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "533d101be9a6450773bb2829bef282b6b7c4ff6d"
+  revision = "8ca64af22337b053ca4477f52d2fb15ebde43eee"
 
 [[projects]]
   digest = "1:8453e43a8cd9a01812e29b91a9682f238adb9015a105a7fa574f43acc4ca74bc"
@@ -275,6 +275,7 @@
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/uuid",
     "google.golang.org/grpc",
+    "google.golang.org/grpc/codes",
     "google.golang.org/grpc/metadata",
     "google.golang.org/grpc/status",
     "gopkg.in/mgo.v2",

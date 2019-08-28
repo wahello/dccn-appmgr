@@ -1,16 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
-	ankr_default "github.com/Ankr-network/dccn-common/protos"
+	"context"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"sort"
-	"context"
 )
 
 // ChartList will return a list of charts from the specific chartmuseum repo
@@ -24,24 +20,10 @@ func (p *AppMgrHandler) ChartList(ctx context.Context, req *appmgr.ChartListRequ
 	if len(req.ChartRepo) == 0 {
 		req.ChartRepo = "stable"
 	}
-	chartRes, err := http.Get(getChartURL(chartmuseumURL+"/api", teamId, req.ChartRepo))
+
+	data, err := getCharts(teamId, req.ChartRepo)
 	if err != nil {
-		log.Printf("cannot get chart list, %s \n", err.Error())
-		return rsp, ankr_default.ErrCannotGetChartList
-	}
-
-	defer chartRes.Body.Close()
-
-	message, err := ioutil.ReadAll(chartRes.Body)
-	if err != nil {
-		log.Printf("cannot get chart list response body, %s \n", err.Error())
-		return rsp, ankr_default.ErrCannotReadChartList
-	}
-
-	data := map[string][]Chart{}
-	if err := json.Unmarshal([]byte(message), &data); err != nil {
-		log.Printf("cannot unmarshal chart list, %s \n", err.Error())
-		return rsp, ankr_default.ErrUnMarshalChartList
+		return rsp, err
 	}
 
 	charts := make([]*common_proto.Chart, 0)

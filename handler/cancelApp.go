@@ -25,16 +25,25 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID) (*comm
 		return &common_proto.Empty{}, err
 	}
 
+	if app.AppStatus == common_proto.AppStatus_APP_UNAVAILABLE || app.AppStatus == common_proto.AppStatus_APP_FAILED {
+		log.Printf("app %s is unavailable or failed, cacel directly", req.AppId)
+		if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELED, "hidden": true}}); err != nil {
+			log.Printf("Update app %s to canceled status error: %v", req.AppId, err)
+			return &common_proto.Empty{}, err
+		}
+		return &common_proto.Empty{}, nil
+	}
+
 	if app.AppStatus == common_proto.AppStatus_APP_CANCELED {
 		return &common_proto.Empty{}, ankr_default.ErrCanceledTwice
 	}
 
 	/*
-	clusterConnection, err := p.db.GetClusterConnection(app.AppDeployment.Namespace.ClusterId)
-	if err != nil || clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
-		log.Println("cluster connection not available, app can not be canceled")
-		return nil, errors.New("cluster connection not available, app can not be canceled")
-	}
+		clusterConnection, err := p.db.GetClusterConnection(app.AppDeployment.Namespace.ClusterId)
+		if err != nil || clusterConnection.Status != common_proto.DCStatus_AVAILABLE {
+			log.Println("cluster connection not available, app can not be canceled")
+			return nil, errors.New("cluster connection not available, app can not be canceled")
+		}
 	*/
 
 	event := common_proto.DCStream{
