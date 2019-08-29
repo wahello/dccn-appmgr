@@ -476,6 +476,7 @@ func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DC
 	log.Printf("UpdateByHeartbeatMetrics %+v", metrics)
 
 	for nsID, r := range metrics.NsUsed {
+		log.Printf("mark ns %s running and update usage %+v", nsID, r)
 		if err := p.collection(session, "namespace").Update(bson.M{
 			"id": nsID,
 			"status": bson.M{
@@ -490,6 +491,24 @@ func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DC
 			},
 		}); err != nil {
 			log.Printf("update ns %s by metrics %+v error: %+v", nsID, r, err)
+		} else {
+			changeInfo, err := p.collection(session, "app").UpdateAll(bson.M{
+				"namespaceid": nsID,
+				"status": bson.M{
+					"$in": []common_proto.AppStatus{
+						common_proto.AppStatus_APP_UNAVAILABLE,
+						common_proto.AppStatus_APP_FAILED,
+					},
+				},
+			}, bson.M{
+				"$set": bson.M{
+					"status": common_proto.AppStatus_APP_RUNNING,
+				},
+			})
+			if err != nil {
+				log.Printf("UpdateAll app change unavailable or failed app to available error: %v", err)
+			}
+			log.Printf("mark unavailable or failed apps available of namespace %s, changeInfo %+v", nsID, changeInfo)
 		}
 	}
 
@@ -525,7 +544,14 @@ func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DC
 
 func (p *DB) markNamespaceUnavailable(session *mgo.Session, nsID string) {
 	log.Printf("mark namespace %s unavailable", nsID)
-	if err := p.collection(session, "namespace").Update(bson.M{"id": nsID, "status": common_proto.NamespaceStatus_NS_RUNNING}, bson.M{"$set": bson.M{
+	markThreshold := time.Now().Unix() - 60
+	if err := p.collection(session, "namespace").Update(bson.M{
+		"id":     nsID,
+		"status": common_proto.NamespaceStatus_NS_RUNNING,
+		"lastmodifieddate.seconds": bson.M{
+			"$lt": markThreshold,
+		},
+	}, bson.M{"$set": bson.M{
 		"status": common_proto.NamespaceStatus_NS_UNAVAILABLE,
 	}}); err != nil {
 		log.Printf("mark namespace %s unavailabe error: %+v", nsID, err)
@@ -534,7 +560,14 @@ func (p *DB) markNamespaceUnavailable(session *mgo.Session, nsID string) {
 
 func (p *DB) markAppUnavailable(session *mgo.Session, appID string) {
 	log.Printf("mark app %s unavailable", appID)
-	if err := p.collection(session, "app").Update(bson.M{"id": appID, "status": common_proto.AppStatus_APP_RUNNING}, bson.M{"$set": bson.M{
+	markThreshold := time.Now().Unix() - 60
+	if err := p.collection(session, "app").Update(bson.M{
+		"id":     appID,
+		"status": common_proto.AppStatus_APP_RUNNING,
+		"lastmodifieddate.seconds": bson.M{
+			"$lt": markThreshold,
+		},
+	}, bson.M{"$set": bson.M{
 		"status": common_proto.AppStatus_APP_UNAVAILABLE,
 	}}); err != nil {
 		log.Printf("mark app %s unavailabe error: %+v", appID, err)

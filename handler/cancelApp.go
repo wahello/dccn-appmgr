@@ -6,8 +6,10 @@ import (
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	common_util "github.com/Ankr-network/dccn-common/util"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"gopkg.in/mgo.v2/bson"
 	"log"
+	"time"
 )
 
 func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID) (*common_proto.Empty, error) {
@@ -27,7 +29,11 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID) (*comm
 
 	if app.AppStatus == common_proto.AppStatus_APP_UNAVAILABLE || app.AppStatus == common_proto.AppStatus_APP_FAILED {
 		log.Printf("app %s is unavailable or failed, cacel directly", req.AppId)
-		if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELED, "hidden": true}}); err != nil {
+		if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{
+			"status":           common_proto.AppStatus_APP_CANCELED,
+			"hidden":           true,
+			"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		}}); err != nil {
 			log.Printf("Update app %s to canceled status error: %v", req.AppId, err)
 			return &common_proto.Empty{}, err
 		}
@@ -56,7 +62,10 @@ func (p *AppMgrHandler) CancelApp(ctx context.Context, req *appmgr.AppID) (*comm
 		return &common_proto.Empty{}, ankr_default.ErrPublish
 	}
 
-	if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{"status": common_proto.AppStatus_APP_CANCELING}}); err != nil {
+	if err := p.db.Update("app", req.AppId, bson.M{"$set": bson.M{
+		"status":           common_proto.AppStatus_APP_CANCELING,
+		"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()},
+	}}); err != nil {
 		log.Println(err.Error())
 		return &common_proto.Empty{}, err
 	}

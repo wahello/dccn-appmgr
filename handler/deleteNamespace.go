@@ -7,8 +7,10 @@ import (
 	"github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 	"github.com/Ankr-network/dccn-common/protos/common"
 	commonutil "github.com/Ankr-network/dccn-common/util"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"gopkg.in/mgo.v2/bson"
 	"log"
+	"time"
 )
 
 // DeleteNamespace will delete a namespace with no resource owned
@@ -35,7 +37,11 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 	}
 
 	if namespaceRecord.Status == common_proto.NamespaceStatus_NS_FAILED || namespaceRecord.Status == common_proto.NamespaceStatus_NS_UNAVAILABLE {
-		if err := p.db.Update("namespace", req.NsId, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELED, "hidden": true}}); err != nil {
+		if err := p.db.Update("namespace", req.NsId, bson.M{"$set": bson.M{
+			"status":           common_proto.NamespaceStatus_NS_CANCELED,
+			"hidden":           true,
+			"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()},
+		}}); err != nil {
 			log.Printf("mark ns %s to canceled error: %v", req.NsId, err)
 			return &common_proto.Empty{}, err
 		} else {
@@ -62,7 +68,10 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 	for _, app := range apps {
 		if app.Status == common_proto.AppStatus_APP_UNAVAILABLE {
 			log.Printf("cancel unavailable app %s", app.ID)
-			if err := p.db.Update("app", app.ID, bson.M{"status": common_proto.AppStatus_APP_CANCELED}); err != nil {
+			if err := p.db.Update("app", app.ID, bson.M{
+				"status":           common_proto.AppStatus_APP_CANCELED,
+				"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()},
+			}); err != nil {
 				log.Printf("Update app %s status to canceled error: %v", app.ID, err)
 				return &common_proto.Empty{}, err
 			}
@@ -86,7 +95,10 @@ func (p *AppMgrHandler) DeleteNamespace(ctx context.Context,
 		return &common_proto.Empty{}, errors.New(ankr_default.PublishError + err.Error())
 	}
 
-	if err := p.db.Update("namespace", req.NsId, bson.M{"$set": bson.M{"status": common_proto.NamespaceStatus_NS_CANCELING}}); err != nil {
+	if err := p.db.Update("namespace", req.NsId, bson.M{"$set": bson.M{
+		"status":           common_proto.NamespaceStatus_NS_CANCELING,
+		"lastmodifieddate": &timestamp.Timestamp{Seconds: time.Now().Unix()},
+	}}); err != nil {
 		log.Printf("Update namespace status to canceling error: %v", err)
 		return &common_proto.Empty{}, err
 	}
