@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:e83a9544aa54b3620412ae72b74159ee04e674ec42c53183ec81c4f8ad0234bf"
+  digest = "1:45240c49db8231da7c09c0b586ff9f2aed62f4b189a4929174e8e943a31f2a07"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -11,10 +11,12 @@
     "protos",
     "protos/appmgr/v1/grpc",
     "protos/common",
+    "protos/teammgr/v1/grpc",
+    "protos/usermgr/v1/grpc",
     "util",
   ]
   pruneopts = "UT"
-  revision = "bbd4878be626abea4e8fca072115979e51bda32a"
+  revision = "5b88fe382203eaf97f60ed1eb891eff8e4fe82de"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -74,7 +76,7 @@
   version = "v0.2.3"
 
 [[projects]]
-  digest = "1:64c2b533ffd17023738c534548ab2455d7f519bc15ed4225145425ed2222448b"
+  digest = "1:7ade0e7351787347d3dd3456abb365fd71ea75c19a859505e6a427064e1f9e42"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -85,8 +87,8 @@
     "ptypes/timestamp",
   ]
   pruneopts = "UT"
-  revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
-  version = "v1.3.1"
+  revision = "6c65a5562fc06764971b7c5d05c76c75e84bdbf7"
+  version = "v1.3.2"
 
 [[projects]]
   digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
@@ -106,15 +108,15 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d6bb6f3240a488ffe5bb6952b513569d009927dcb20ff94885f87b76cef2b698"
+  digest = "1:523f246a749e007dff099d654ec713cf94cd0f441bce9072ceaa1af62722d225"
   name = "github.com/streadway/amqp"
   packages = ["."]
   pruneopts = "UT"
-  revision = "75d898a42a940fbc854dfd1a4199eabdc00cf024"
+  revision = "eade30b20f1d77d4ab7a3c72d5e3a3331b6443ba"
 
 [[projects]]
   branch = "master"
-  digest = "1:b5936d38011189ba9b2e5890a38c7ffe0ac7f157eef2ddc0fe752117c50d394d"
+  digest = "1:082ed090a1aedec21b660263f98f72582e431b56e8e27b88cc00faa1510fde14"
   name = "golang.org/x/net"
   packages = [
     "context",
@@ -126,15 +128,15 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "d28f0bde5980168871434b95cfc858db9f2a7a99"
+  revision = "74dc4d7220e7acc4e100824340f3e66577424772"
 
 [[projects]]
   branch = "master"
-  digest = "1:249fd56fb36a223aee164e2dc35e3b3a1b92dd3873dfb60216280b9fb9d4a784"
+  digest = "1:47844666be86089349a441f5f0ece22f42a87a8cb8c9a31294c593f43209ad19"
   name = "golang.org/x/sys"
   packages = ["unix"]
   pruneopts = "UT"
-  revision = "15dcb6c0061f497a3f66e3ea034b629c6dd4d99e"
+  revision = "fde4db37ae7ad8191b03d30d27f258b5291ae4e3"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -167,10 +169,10 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "a7e196e89fd3a3c4d103ca540bd5dac3a736e375"
+  revision = "24fa4b261c55da65468f2abfdae2b024eef27dfb"
 
 [[projects]]
-  digest = "1:456a209c8f2449983f13bad0eb015b6169dbbfe90cf38be241259ae1f715df47"
+  digest = "1:4f01d2d6492b8926086b09690d0d64244d90ebc6dee6cf3c2277431b78709989"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -204,17 +206,18 @@
     "resolver",
     "resolver/dns",
     "resolver/passthrough",
+    "serviceconfig",
     "stats",
     "status",
     "tap",
   ]
   pruneopts = "UT"
-  revision = "501c41df7f472c740d0674ff27122f3f48c80ce7"
-  version = "v1.21.1"
+  revision = "6eaf6f47437a6b4e2153a190160ef39a92c7eceb"
+  version = "v1.23.0"
 
 [[projects]]
   branch = "v2"
-  digest = "1:988de7520a09024d5d94cd99bd545afbf194893994ec759b1cda0a0bbb6adb80"
+  digest = "1:4af24de1cba937fb5ef082e8860a47fd46282e6863c01930359368ee121e3114"
   name = "gopkg.in/mgo.v2"
   packages = [
     ".",
@@ -224,7 +227,7 @@
     "internal/scram",
   ]
   pruneopts = "UT"
-  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
+  revision = "a6b53ec6cb22a3699387a57a161566f9402ee85b"
 
 [[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
@@ -240,10 +243,10 @@
   name = "k8s.io/apimachinery"
   packages = ["pkg/version"]
   pruneopts = "UT"
-  revision = "6a5db36e93ad748d0bd973480dfd58d80dd8d94b"
+  revision = "8ca64af22337b053ca4477f52d2fb15ebde43eee"
 
 [[projects]]
-  digest = "1:094f472cc3b91a97ea03ed1523b56acf1ff43fb550c51ecd223c88a6204a9045"
+  digest = "1:8453e43a8cd9a01812e29b91a9682f238adb9015a105a7fa574f43acc4ca74bc"
   name = "k8s.io/helm"
   packages = [
     "pkg/chartutil",
@@ -254,8 +257,8 @@
     "pkg/version",
   ]
   pruneopts = "UT"
-  revision = "5270352a09c7e8b6e8c9593002a73535276507c0"
-  version = "v2.14.1"
+  revision = "0e7f3b6637f7af8fcfddb3d2941fcc7cbebb0085"
+  version = "v2.14.3"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -266,10 +269,13 @@
     "github.com/Ankr-network/dccn-common/protos",
     "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc",
     "github.com/Ankr-network/dccn-common/protos/common",
+    "github.com/Ankr-network/dccn-common/protos/usermgr/v1/grpc",
     "github.com/Ankr-network/dccn-common/util",
+    "github.com/Masterminds/semver",
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/uuid",
     "google.golang.org/grpc",
+    "google.golang.org/grpc/codes",
     "google.golang.org/grpc/metadata",
     "google.golang.org/grpc/status",
     "gopkg.in/mgo.v2",

@@ -1,10 +1,10 @@
 package subscriber
 
 import (
+	"fmt"
+	"gopkg.in/mgo.v2"
 	"log"
 	"time"
-
-	"gopkg.in/mgo.v2"
 
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
@@ -22,7 +22,6 @@ func New(db db.DBService) *AppStatusFeedback {
 
 // UHandlerFeedbackEventFromDataCenter receives app report result from data center and update record
 func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_proto.DCStream) error {
-
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Receive New Event: %+v with payload: %+v ", stream.GetOpType(), stream.GetOpPayload())
 	update := bson.M{}
 	var collection string
@@ -62,18 +61,27 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 				case common_proto.AppEvent_UPDATE_APP_SUCCEED:
 					update["status"] = common_proto.AppStatus_APP_RUNNING
 					update["chartdetail"] = appRecord.ChartUpdating
+					update["customvalues"] = appRecord.CustomValuesUpdating
 				case common_proto.AppEvent_UPDATE_APP_FAILED:
 					update["status"] = common_proto.AppStatus_APP_UPDATE_FAILED
 				}
 				update["event"] = appReport.AppEvent
 			}
 		case common_proto.DCOperation_APP_CANCEL:
-			update["status"] = common_proto.AppStatus_APP_CANCELED
-			update["event"] = appReport.AppEvent
+			if appRecord.Status == common_proto.AppStatus_APP_CANCELING {
+				switch appReport.AppEvent {
+				case common_proto.AppEvent_CANCEL_APP_SUCCEED:
+					update["status"] = common_proto.AppStatus_APP_CANCELED
+				case common_proto.AppEvent_CANCEL_APP_FAILED:
+					log.Printf("cancel app %s failed", appReport.AppDeployment.AppId)
+				}
+				update["event"] = appReport.AppEvent
+			}
 		case common_proto.DCOperation_APP_DETAIL:
 			update["detail"] = appReport.Detail
 		default:
 			log.Printf("OpType has unexpected type %v", opType)
+			return fmt.Errorf("OpType has unexpected type %v", opType)
 		}
 
 		collection = "app"
@@ -87,6 +95,12 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 		if err != nil {
 			log.Println(err.Error())
 			return err
+		}
+
+		// ignore running namespace feedback
+		if nsRecord.Status == common_proto.NamespaceStatus_NS_RUNNING {
+			log.Printf("ignore running namespace feedback, ns_report: %+v, ns_record: %+v", nsReport, nsRecord)
+			return nil
 		}
 
 		update["event"] = nsReport.NsEvent
@@ -106,7 +120,6 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 				case common_proto.NamespaceEvent_DISPATCH_NS:
 					update["status"] = common_proto.NamespaceStatus_NS_LAUNCHING
 				}
-
 			}
 		case common_proto.DCOperation_NS_UPDATE:
 			if nsRecord.Status == common_proto.NamespaceStatus_NS_UPDATING {
@@ -121,29 +134,45 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 				}
 			}
 		case common_proto.DCOperation_NS_CANCEL:
-			update["status"] = common_proto.NamespaceStatus_NS_CANCELED
+			if nsRecord.Status == common_proto.NamespaceStatus_NS_CANCELING {
+				switch nsReport.NsEvent {
+				case common_proto.NamespaceEvent_CANCEL_NS_SUCCEED:
+					update["status"] = common_proto.NamespaceStatus_NS_CANCELED
+				case common_proto.NamespaceEvent_CANCEL_NS_FAILED:
+					log.Printf("cancel namespace %s failed", nsReport.Namespace.NsId)
+				}
+			}
 		default:
 			log.Printf("OpType has unexpected type %v", opType)
+			return fmt.Errorf("OpType has unexpected type %v", opType)
 		}
 
 		collection = "namespace"
 		id = nsReport.Namespace.NsId
-		update["lastmodifieddate"] = &timestamp.Timestamp{Seconds: time.Now().Unix()}
 
 	case *common_proto.DCStream_DataCenter:
-		if _, err := p.db.GetClusterConnection(stream.GetDataCenter().DcId); err == mgo.ErrNotFound {
-			if err = p.db.CreateClusterConnection(stream.GetDataCenter().DcId, stream.GetDataCenter().DcStatus); err != nil {
-				log.Printf("Create cluster connection failed %v", err)
-				return err
+		dc := stream.GetDataCenter()
+		if dc.DcHeartbeatReport != nil && dc.DcHeartbeatReport.MetricsRaw != nil {
+			if _, err := p.db.GetClusterConnection(dc.DcId); err == mgo.ErrNotFound {
+				if err = p.db.CreateClusterConnection(dc.DcId, dc.DcStatus, dc.DcHeartbeatReport.MetricsRaw); err != nil {
+					log.Printf("Create cluster connection failed %v", err)
+					return err
+				}
+			} else {
+				update["metrics"] = dc.DcHeartbeatReport.MetricsRaw
 			}
+			log.Printf("update namespace & app by heartbeat metrics")
+			p.db.UpdateByHeartbeatMetrics(dc.DcId, dc.DcHeartbeatReport.MetricsRaw)
 		}
 		collection = "clusterconnection"
-		id = stream.GetDataCenter().DcId
-		update["status"] = stream.GetDataCenter().DcStatus
+		id = dc.DcId
+		update["status"] = dc.DcStatus
 
 	default:
 		log.Printf("OpPayload has unexpected type %T", x)
+		return fmt.Errorf("OpPayload has unexpected type %T", x)
 	}
+
 	log.Printf(">>>>>>>>HandlerFeedbackEventFromDataCenter: Update Collection %s on ID %s Update: %s", collection, id, update)
 
 	update["lastmodifieddate"] = &timestamp.Timestamp{Seconds: time.Now().Unix()}

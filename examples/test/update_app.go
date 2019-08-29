@@ -36,7 +36,7 @@ func main() {
 	appClient := appmgr.NewAppMgrClient(conn)
 
 	md := metadata.New(map[string]string{
-		"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NTUwMTUzMTgsImp0aSI6IjQ4NTQ5YjQxLWUzNjYtNGIxMi05NTc3LTU0M2Y5NTE5Y2JlZiIsImlzcyI6ImFua3IubmV0d29yayJ9.A0p3KyxIKZHAZb_buPgadKj3d40Rlw_hSpsFBrNLjuw",
+		"authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1NjMyMzg5NTEsImp0aSI6IjU1NzNhYjY3LTQ0YTUtNGY2Yi1iMjY2LTY3MzA1MjcyZWEzMSIsImlzcyI6ImFua3IuY29tIn0.-8NckBOtNjuhMC2B4CgYYtK9qmzFa2IGA0zjpfPDFgw",
 	})
 
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
@@ -47,13 +47,25 @@ func main() {
 	appDeployment := common_proto.AppDeployment{}
 	appDeployment.AppId = os.Args[1]
 	log.Printf("APP ID: %s", appDeployment.AppId)
-	appDeployment.AppName = "wordpress_test1"
+	appDeployment.AppName = "zilliqa_test2"
 	appDeployment.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",
-		ChartName: "wordpress",
-		ChartVer:  "5.7.1",
+		ChartName: "zilliqa",
+		ChartVer:  "0.1.0",
 	}
-
+	var customValues []*common_proto.CustomValue
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key: "seed_port"
+		Value: "32138"
+	})
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key: "pubkey"
+		Value: "034D4483544DB5BF71D4C91E9B920855B2577B8B54A0B30AC60EB81A5260C583A4"
+	})
+	customValues = append(customValues, &common_proto.CustomValue{
+		Key: "prikey"
+		Value: "F2BA7F7C9582D1CEE5423DE15017C386D63E6796730BAC9673A5B73E3CCF2984"
+	})
 	if _, err := appClient.UpdateApp(tokenContext, &appmgr.UpdateAppRequest{AppDeployment: &appDeployment}); err != nil {
 		log.Fatal(err)
 	} else {
