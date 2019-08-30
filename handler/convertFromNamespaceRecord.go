@@ -1,9 +1,9 @@
 package handler
 
 import (
-	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
-	)
+	common_proto "github.com/Ankr-network/dccn-common/protos/common"
+)
 
 func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.NamespaceReport {
 	message := common_proto.Namespace{}
@@ -20,6 +20,7 @@ func convertFromNamespaceRecord(namespace db.NamespaceRecord) common_proto.Names
 		Namespace: &message,
 		NsEvent:   namespace.Event,
 		NsStatus:  namespace.Status,
+		Report:    namespace.Report,
 	}
 	return namespaceReport
 }

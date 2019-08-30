@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:45240c49db8231da7c09c0b586ff9f2aed62f4b189a4929174e8e943a31f2a07"
+  digest = "1:4591d5bda135fff6611a691d2054929a119d85cfc4f0153e7dea5e5491030f06"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -16,7 +16,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "5b88fe382203eaf97f60ed1eb891eff8e4fe82de"
+  revision = "2b6f4d893da62647de8dd7c1b3108c26a1e0dd64"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -275,7 +275,6 @@
     "github.com/golang/protobuf/ptypes/timestamp",
     "github.com/google/uuid",
     "google.golang.org/grpc",
-    "google.golang.org/grpc/codes",
     "google.golang.org/grpc/metadata",
     "google.golang.org/grpc/status",
     "gopkg.in/mgo.v2",

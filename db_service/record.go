@@ -46,6 +46,7 @@ type NamespaceRecord struct {
 	Event                common_proto.NamespaceEvent
 	Hidden               bool
 	Creator              string
+	Report               string
 }
 
 type ClusterConnectionRecord struct {
