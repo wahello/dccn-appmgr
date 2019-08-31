@@ -499,7 +499,6 @@ func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DC
 				"status": bson.M{
 					"$in": []common_proto.AppStatus{
 						common_proto.AppStatus_APP_UNAVAILABLE,
-						common_proto.AppStatus_APP_FAILED,
 					},
 				},
 			}, bson.M{
