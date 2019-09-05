@@ -16,9 +16,7 @@ var token string
 var testing_app_id string
 var testing_ns_id string
 
-
 func TestUserLogin(t *testing.T) {
-
 	conn, err := grpc.Dial("usermgr:50051", grpc.WithInsecure())
 	if err != nil {
 		t.Error(err)
@@ -28,11 +26,11 @@ func TestUserLogin(t *testing.T) {
 			t.Error(err)
 		}
 	}(conn)
+
 	userClient := usermgr.NewUserMgrClient(conn)
 	ctx, cancel := context.WithTimeout(context.Background(),
 		60*time.Second)
 	defer cancel()
-
 	if rsp, err := userClient.Login(ctx, &usermgr.LoginRequest{
 		Email:    "test12345@mailinator.com",
 		Password: "test12345",
@@ -43,7 +41,6 @@ func TestUserLogin(t *testing.T) {
 		token = rsp.AuthenticationResult.AccessToken
 	}
 }
-
 
 func TestCreateApp(t *testing.T) {
 	conn, err := grpc.Dial(app_test_addr, grpc.WithInsecure())
@@ -62,14 +59,14 @@ func TestCreateApp(t *testing.T) {
 		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
-	tokenContext, cancel := context.WithTimeout(ctx, 80 * time.Second)
+	tokenContext, cancel := context.WithTimeout(ctx, 300 * time.Second)
 
 	defer cancel()
 
 	// create namespace for app_create
 	rsp, err := appClient.CreateNamespace(tokenContext,
 		&appmgr.CreateNamespaceRequest{Namespace: &common_proto.Namespace{
-			NsName:         "app_create_test_1",
+			NsName:         "app_create_1",
 			NsCpuLimit:     1000,
 			NsMemLimit:     2000,
 			NsStorageLimit: 50000,
@@ -78,11 +75,11 @@ func TestCreateApp(t *testing.T) {
 	t.Log("create ns successfully for app_create \n" )
 	testing_ns_id = rsp.NsId
 	// wait for status changed
-	time.Sleep(15 * time.Second)
+	time.Sleep(20 * time.Second)
 
 	// case 1: correct inputs with created namespace
 	app_1 := common_proto.App{}
-	app_1.AppName = "app_create_test"
+	app_1.AppName = "app_create_1"
 	app_1.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",
 		ChartName: "wordpress",
@@ -92,19 +89,14 @@ func TestCreateApp(t *testing.T) {
 	if rsp, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app_1}); err != nil {
 		t.Error(err)
 	} else {
-		t.Logf("create app successfully : appid %s \n ", rsp.AppId)
+		t.Logf("case 1 pass: correct inputs: create app successfully : app_id %s \n ", rsp.AppId)
 		testing_app_id = rsp.AppId
-		// wait for status changed
-		time.Sleep(15 * time.Second)
 	}
-
-	// delete the app created
-	appClient.CancelApp(tokenContext, &appmgr.AppID{AppId: testing_app_id})
-	time.Sleep(10 * time.Second)
+	t.Log(testing_app_id)
 
 	// case 2: invalid namespace
 	app_2 := common_proto.App{}
-	app_2.AppName = "app_create_test"
+	app_2.AppName = "app_create_2"
 	app_2.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "stable",
 		ChartName: "wordpress",
@@ -114,12 +106,12 @@ func TestCreateApp(t *testing.T) {
 	if _, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app_2}); err == nil {
 		t.Error(err)
 	} else {
-		t.Logf("cannot create app successfully for an invalid namespace")
+		t.Logf("case 2 pass: invalid namespace: cannot create app successfully for an invalid namespace")
 	}
 
 	// case 3: invalid chart
 	app_3 := common_proto.App{}
-	app_3.AppName = "app_create_test"
+	app_3.AppName = "app_create_3"
 	app_3.ChartDetail = &common_proto.ChartDetail{
 		ChartRepo: "",
 		ChartName: "",
@@ -129,7 +121,7 @@ func TestCreateApp(t *testing.T) {
 	if _, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app_3}); err == nil {
 		t.Error(err)
 	} else {
-		t.Logf("cannot create app successfully for an invalid chart")
+		t.Logf("case 3 pass: invalid chart: cannot create app successfully for an invalid chart")
 	}
 
 	// case 4: empty app name
@@ -144,14 +136,20 @@ func TestCreateApp(t *testing.T) {
 	if _, err := appClient.CreateApp(tokenContext, &appmgr.CreateAppRequest{App: &app_4}); err == nil {
 		t.Error(err)
 	} else {
-		t.Logf("cannot create app successfully for an empty app name")
+		t.Logf("case 4 pass: empty app name: cannot create app successfully for an empty app name")
 	}
+
+	// wait for status changed
+	time.Sleep(30 * time.Second)
+
+	// delete the app created
+	appClient.CancelApp(tokenContext, &appmgr.AppID{AppId: testing_app_id})
+	time.Sleep(15 * time.Second)
 
 	// delete the namespace created
 	appClient.DeleteNamespace(tokenContext,&appmgr.DeleteNamespaceRequest{NsId: testing_ns_id})
-
+	time.Sleep(10 * time.Second)
 }
-
 
 func TestAppList(t *testing.T) {
 	conn, err := grpc.Dial(app_test_addr, grpc.WithInsecure())
@@ -170,33 +168,19 @@ func TestAppList(t *testing.T) {
 		"authorization": token,
 	})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
-	tokenContext, cancel := context.WithTimeout(ctx, 20*time.Second)
-
-	// invalid token
-	md_invalid := metadata.New(map[string]string{
-		"authorization": "",
-	})
-	ctx_invalid := metadata.NewOutgoingContext(context.Background(), md_invalid)
-	tokenContext_invalid, _ := context.WithTimeout(ctx_invalid, 10*time.Second)
+	tokenContext, cancel := context.WithTimeout(ctx, 20 * time.Second)
 
 	defer cancel()
 
-	// case 1: invalid access token
-	if _, err := appClient.AppList(tokenContext_invalid, &common_proto.Empty{}); err != nil {
-		t.Error(err)
-	} else {
-		t.Logf("can list app successfully for invalid access token \n ")
-		time.Sleep(2 * time.Second)
-	}
-
-	// case 2: correct inputs
+	// case 1: correct inputs
 	if res, err := appClient.AppList(tokenContext, &common_proto.Empty{}); err != nil || len(res.AppReports) < 0 {
 		t.Error(err)
 	} else {
-		// t.Logf("app list successfully : \n  %v  \n ", res.AppReports)
+		t.Logf("case 1: correct inputs: app list successfully : \n  %v  \n ", res.AppReports)
 		time.Sleep(2 * time.Second)
 	}
 }
+
 
 func TestAppDetail(t *testing.T) {
 
@@ -320,8 +304,11 @@ func TestCancelApp(t *testing.T) {
 		t.Logf("cancel app successfully : appid %s \n" + testing_app_id)
 		time.Sleep(2 * time.Second)
 	}
-}
 
+	// delete the namespace created
+	time.Sleep(10 * time.Second)
+	appClient.DeleteNamespace(tokenContext,&appmgr.DeleteNamespaceRequest{NsId: testing_ns_id})
+}
 
 func TestUpdateApp(t *testing.T) {
 
@@ -403,6 +390,7 @@ func TestUpdateApp(t *testing.T) {
 	// delete the namespace created
 	appClient.DeleteNamespace(tokenContext,&appmgr.DeleteNamespaceRequest{NsId: testing_ns_id})
 }
+
 
 
 
