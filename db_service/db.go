@@ -467,9 +467,11 @@ func (p *DB) UpdateNamespace(namespace *common_proto.Namespace) error {
 }
 
 func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DCHeartbeatReport_Metrics) {
-	if metrics.NsUsed == nil {
+	if metrics == nil {
+		log.Printf("metrics is nil, skip")
 		return
 	}
+
 	session := p.session.Copy()
 	defer session.Close()
 
@@ -497,7 +499,6 @@ func (p *DB) UpdateByHeartbeatMetrics(clusterID string, metrics *common_proto.DC
 				"status": bson.M{
 					"$in": []common_proto.AppStatus{
 						common_proto.AppStatus_APP_UNAVAILABLE,
-						common_proto.AppStatus_APP_FAILED,
 					},
 				},
 			}, bson.M{

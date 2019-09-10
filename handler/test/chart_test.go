@@ -204,7 +204,6 @@ func TestDownloadChart(t *testing.T) {
 	}
 }
 
-
 func TestSaveAsChart(t *testing.T) {
 	conn, err := grpc.Dial(chart_test_addr, grpc.WithInsecure())
 	if err != nil {

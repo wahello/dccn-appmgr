@@ -97,6 +97,8 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 			return err
 		}
 
+		update["report"] = nsReport.Report
+
 		// ignore running namespace feedback
 		if nsRecord.Status == common_proto.NamespaceStatus_NS_RUNNING {
 			log.Printf("ignore running namespace feedback, ns_report: %+v, ns_record: %+v", nsReport, nsRecord)
