@@ -2,14 +2,14 @@ package handler
 
 import (
 	db "github.com/Ankr-network/dccn-appmgr/db_service"
-	micro2 "github.com/Ankr-network/dccn-common/ankr-micro"
+	"github.com/Ankr-network/dccn-common/broker"
 	common_proto "github.com/Ankr-network/dccn-common/protos/common"
 	"sort"
 )
 
 type AppMgrHandler struct {
 	db        db.DBService
-	deployApp *micro2.Publisher
+	deployApp broker.Publisher
 }
 
 type Token struct {
@@ -18,7 +18,7 @@ type Token struct {
 	Iss string
 }
 
-func New(db db.DBService, deployApp *micro2.Publisher) *AppMgrHandler {
+func New(db db.DBService, deployApp broker.Publisher) *AppMgrHandler {
 	return &AppMgrHandler{
 		db:        db,
 		deployApp: deployApp,
@@ -26,6 +26,7 @@ func New(db db.DBService, deployApp *micro2.Publisher) *AppMgrHandler {
 }
 
 var chartmuseumURL string
+
 type chartList []*common_proto.Chart
 
 // Maintainer is a struct representing a maintainer inside a chart
@@ -61,7 +62,3 @@ func (c chartList) Less(i, j int) bool {
 	data := []string{c[i].ChartName, c[j].ChartName}
 	return sort.StringsAreSorted(data)
 }
-
-
-
-

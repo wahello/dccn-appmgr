@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "feature/SWDEV-434-improve-mq"
-  digest = "1:4f1861dd510b723bd3ccdea4af8bd0df02135298897a0436ebfb8e01d660121d"
+  digest = "1:ffd89874dc87aedf53e481175992573a21523e848d114602167dd0721aa17a37"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -19,7 +19,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "9faeaf84d16b359d751cf862a190a492f6e5f882"
+  revision = "1fe0da84303a456cc926c0f680513ce6acaead1f"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"

@@ -5,7 +5,6 @@ import (
 
 	micro2 "github.com/Ankr-network/dccn-common/ankr-micro"
 
-	ankr_default "github.com/Ankr-network/dccn-common/protos"
 	appmgr "github.com/Ankr-network/dccn-common/protos/appmgr/v1/grpc"
 
 	"github.com/Ankr-network/dccn-appmgr/config"
@@ -49,19 +48,23 @@ func startHandler(db dbservice.DBService) {
 	// New Service
 	srv := micro2.NewService()
 
+	broker := rabbitmq.NewBroker(conf.RabbitMQUrl)
+
+	appSubscriber := subscriber.New(db)
 	// Register Function as AppStatusFeedback to update app by data center manager's feedback.
-	if err := micro2.RegisterSubscriber(ankr_default.MQFeedbackApp, subscriber.New(db)); err != nil {
+	if err := broker.Subscribe("appmgr.dcmgr", "ankr.topic.dcmgr.appmgr", true, appSubscriber.HandlerFeedbackEventFromDataCenter); err != nil {
 		log.Fatal(err)
 	}
-
-	broker := rabbitmq.NewBroker(conf.RabbitMQUrl)
 	metricsSubscriber := subscriber.MetricsSubscriber{DB: db}
-	if err := broker.Subscribe("appmgr.metrics", "ankr.topic.metrics", metricsSubscriber.Handle); err != nil {
+	if err := broker.Subscribe("appmgr.metrics", "ankr.topic.metrics", false, metricsSubscriber.Handle); err != nil {
 		log.Fatal(err)
 	}
 
 	// New Publisher to deploy new app action.
-	deployAppPublisher := micro2.NewPublisher(ankr_default.MQDeployApp)
+	deployAppPublisher, err := broker.Publisher("ankr.topic.appmgr.dcmgr", true)
+	if err != nil {
+		log.Fatal(err)
+	}
 	// Register Handler
 	deployAppHandler := handler.New(db, deployAppPublisher)
 	appmgr.RegisterAppMgrServer(srv.GetServer(), deployAppHandler)
