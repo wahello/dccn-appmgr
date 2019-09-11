@@ -1,8 +1,8 @@
 package subscriber
 
 import (
+	"errors"
 	"fmt"
-	"gopkg.in/mgo.v2"
 	"log"
 	"time"
 
@@ -153,19 +153,12 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 		id = nsReport.Namespace.NsId
 
 	case *common_proto.DCStream_DataCenter:
-		dc := stream.GetDataCenter()
-		if dc.DcHeartbeatReport != nil && dc.DcHeartbeatReport.MetricsRaw != nil {
-			if _, err := p.db.GetClusterConnection(dc.DcId); err == mgo.ErrNotFound {
-				if err = p.db.CreateClusterConnection(dc.DcId, dc.DcStatus, dc.DcHeartbeatReport.MetricsRaw); err != nil {
-					log.Printf("Create cluster connection failed %v", err)
-					return err
-				}
-			} else {
-				update["metrics"] = dc.DcHeartbeatReport.MetricsRaw
-			}
-			log.Printf("update namespace & app by heartbeat metrics")
-			p.db.UpdateByHeartbeatMetrics(dc.DcId, dc.DcHeartbeatReport.MetricsRaw)
+		if stream.GetOpType() != common_proto.DCOperation_DCSTATUS_UPDATE {
+			err := errors.New("stream OpType for dc is not for update, skip")
+			log.Print(err)
+			return err
 		}
+		dc := stream.GetDataCenter()
 		collection = "clusterconnection"
 		id = dc.DcId
 		update["status"] = dc.DcStatus

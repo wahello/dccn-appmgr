@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	DB dbcommon.Config
+	DB          dbcommon.Config
+	RabbitMQUrl string
 }
 
 var Default = Config{
@@ -19,6 +20,7 @@ var Default = Config{
 		Timeout:    5,
 		PoolLimit:  4096,
 	},
+	RabbitMQUrl: "amqp://guest:guest@localhost:5672",
 }
 
 func Load() (Config, error) {
@@ -42,6 +44,10 @@ func Load() (Config, error) {
 		} else {
 			Default.DB.PoolLimit = t
 		}
+	}
+
+	if rabbitMQUrl := os.Getenv("MICRO_BROKER_ADDRESS"); len(rabbitMQUrl) != 0 {
+		Default.RabbitMQUrl = rabbitMQUrl
 	}
 
 	return Default, nil

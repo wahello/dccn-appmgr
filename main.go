@@ -12,6 +12,8 @@ import (
 	dbservice "github.com/Ankr-network/dccn-appmgr/db_service"
 	"github.com/Ankr-network/dccn-appmgr/handler"
 	"github.com/Ankr-network/dccn-appmgr/subscriber"
+
+	"github.com/Ankr-network/dccn-common/broker/rabbitmq"
 )
 
 var (
@@ -49,7 +51,13 @@ func startHandler(db dbservice.DBService) {
 
 	// Register Function as AppStatusFeedback to update app by data center manager's feedback.
 	if err := micro2.RegisterSubscriber(ankr_default.MQFeedbackApp, subscriber.New(db)); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(err)
+	}
+
+	broker := rabbitmq.NewBroker(conf.RabbitMQUrl)
+	metricsSubscriber := subscriber.MetricsSubscriber{DB: db}
+	if err := broker.Subscribe("appmgr.metrics", "ankr.topic.metrics", metricsSubscriber.Handle); err != nil {
+		log.Fatal(err)
 	}
 
 	// New Publisher to deploy new app action.
