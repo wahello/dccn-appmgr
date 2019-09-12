@@ -52,11 +52,11 @@ func startHandler(db dbservice.DBService) {
 
 	appSubscriber := subscriber.New(db)
 	// Register Function as AppStatusFeedback to update app by data center manager's feedback.
-	if err := broker.Subscribe("appmgr.dcmgr", "ankr.topic.dcmgr.appmgr", true, appSubscriber.HandlerFeedbackEventFromDataCenter); err != nil {
+	if err := broker.Subscribe("appmgr.dcmgr", "ankr.topic.dcmgr.appmgr", true, false, appSubscriber.HandlerFeedbackEventFromDataCenter); err != nil {
 		log.Fatal(err)
 	}
 	metricsSubscriber := subscriber.MetricsSubscriber{DB: db}
-	if err := broker.Subscribe("appmgr.metrics", "ankr.topic.metrics", false, metricsSubscriber.Handle); err != nil {
+	if err := broker.Subscribe("appmgr.metrics", "ankr.topic.metrics", false, false, metricsSubscriber.Handle); err != nil {
 		log.Fatal(err)
 	}
 

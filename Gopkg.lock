@@ -3,7 +3,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:f727fe48c8a746dee82faa3d5e1b2591a645393093ca791167809739d78cc8e0"
+  digest = "1:233f3210863aff1cb454d6f49430ab8a0743b9d8b3b80e445f2dce347986df3c"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
     "ankr-micro",
@@ -19,7 +19,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "9ae67978074ed86499c9cab1a9c3ec4a39af28ef"
+  revision = "08b13d31ac765fba63f306a94fa5e08bfea417fe"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
