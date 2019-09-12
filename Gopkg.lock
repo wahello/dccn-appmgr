@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  branch = "feature/SWDEV-434-improve-mq"
+  branch = "develop"
   digest = "1:ffd89874dc87aedf53e481175992573a21523e848d114602167dd0721aa17a37"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
@@ -19,7 +19,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "1fe0da84303a456cc926c0f680513ce6acaead1f"
+  revision = "878dd1cbd75ab339f69f88066ff359eb4d1ec4e1"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
@@ -434,6 +434,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Ankr-network/dccn-common/ankr-micro",
+    "github.com/Ankr-network/dccn-common/broker",
     "github.com/Ankr-network/dccn-common/broker/rabbitmq",
     "github.com/Ankr-network/dccn-common/db",
     "github.com/Ankr-network/dccn-common/protos",
