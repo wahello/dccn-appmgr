@@ -67,9 +67,10 @@ jobs:
             kubectl set image dccn-appmgr=$AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/dccn-appmgr:${BRANCH_NAME}${DATE} --local -f kubernetes/app.yml -o yaml > kubernetes/app_patch.yml
             kubectl set image dccn-appmgr=$AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com/dccn-appmgr:${BRANCH_NAME}${DATE} --local -f kubernetes/app_test.yml -o yaml > kubernetes/app_test_patch.yml
             kubectl apply -f kubernetes/app_patch.yml
-            if ! kubectl rollout status deploy/appmgr --watch=true --timeout=60s; then
+            if ! kubectl rollout status deploy/appmgr --watch=true --timeout=120s; then
               echo "Deploy failed, roll back to previous version"
-              kubectl rollout undo deploy/appmgr 
+              kubectl rollout undo deploy/appmgr
+              exit 1
             fi
             kubectl apply -f kubernetes/app_svc.yml
             sleep 10
