@@ -22,6 +22,8 @@ type AppRecord struct {
 	CustomValues         []*common_proto.CustomValue
 	CustomValuesUpdating []*common_proto.CustomValue
 	Creator              string
+	NodePorts            []uint32
+	GatewayAddr          string
 }
 
 type NamespaceRecord struct {

@@ -31,6 +31,8 @@ func convertToAppMessage(app db.AppRecord, pdb db.DBService) common_proto.AppRep
 		AppEvent:      app.Event,
 		Detail:        app.Detail,
 		Report:        app.Report,
+		NodePorts:     app.NodePorts,
+		GatewayAddr:   app.GatewayAddr,
 	}
 	if len(app.Detail) > 0 && len(message.Namespace.ClusterId) > 0 &&
 		strings.Contains(app.Detail, app.ID+"."+message.Namespace.ClusterId+".ankr.com") {

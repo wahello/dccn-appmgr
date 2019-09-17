@@ -79,6 +79,8 @@ func (p *AppStatusFeedback) HandlerFeedbackEventFromDataCenter(stream *common_pr
 			}
 		case common_proto.DCOperation_APP_DETAIL:
 			update["detail"] = appReport.Detail
+			update["nodeports"] = appReport.NodePorts
+			update["gatewayaddr"] = appReport.GatewayAddr
 		default:
 			log.Printf("OpType has unexpected type %v", opType)
 			return fmt.Errorf("OpType has unexpected type %v", opType)
