@@ -26,8 +26,7 @@
 
 
 [[constraint]]
-#  branch = "develop"
-  branch = "feature/SWDEV-439"
+  branch = "develop"
   name = "github.com/Ankr-network/dccn-common"
 
 [[constraint]]

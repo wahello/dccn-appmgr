@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  branch = "feature/SWDEV-439"
+  branch = "develop"
   digest = "1:49efe3c6b8a9824d7eb8d0c3256e5b308c22b1364428d8b21746d0677a2d5c3e"
   name = "github.com/Ankr-network/dccn-common"
   packages = [
@@ -19,7 +19,7 @@
     "util",
   ]
   pruneopts = "UT"
-  revision = "5dbddbff8e74f2c16757d6e7e9e107748ec068fd"
+  revision = "7bf9bdd7d0c1cc34f8add9b35711537fbd3b119a"
 
 [[projects]]
   digest = "1:9f3b30d9f8e0d7040f729b82dcbc8f0dead820a133b3147ce355fc451f32d761"
